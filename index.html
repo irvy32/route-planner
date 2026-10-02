@@ -34,9 +34,11 @@ const cloud=(a,x={})=>api(L("cloud"),Object.assign({action:a,token:L("token")},x
 function phoneLink(){if(location.protocol==="file:")return toast("請在 GitHub Pages 網址開啟後再使用此按鈕",5000);if(!L("cloud"))return toast("請先完成設定");
 const u=location.href.split("#")[0]+"#"+new URLSearchParams({c:L("cloud"),t:L("token"),k:L("calc")}).toString();navigator.clipboard.writeText(u).then(()=>toast("已複製。傳給自己的手機開啟一次即可（含密碼，請勿公開）",6000))}
 function applyHash(){if(!location.hash)return;const q=new URLSearchParams(location.hash.slice(1));if(q.get("c")&&q.get("t")){localStorage.cloud=q.get("c");localStorage.token=q.get("t");if(q.get("k"))localStorage.calc=q.get("k");history.replaceState(null,"",location.pathname+location.search)}}
+const OKU=u=>/^https:\/\/script\.google\.com\/.+\/exec$/.test((u||"").trim());
 function setup(){const c=prompt("雲端儲存網址（…/exec）",L("cloud"));if(c===null)return;const t=prompt("密碼",L("token"));if(t===null)return;
-const k=prompt("路線計算網址（桌面版原本那個）",L("calc")||DEF_CALC);if(k===null)return;localStorage.cloud=c.trim();localStorage.token=t.trim();localStorage.calc=k.trim();init()}
-async function init(){if(!L("cloud")||!L("token")){setup();return}$("st").textContent="載入中…";
+const k=prompt("路線計算網址（桌面版原本那個）",L("calc")||DEF_CALC);if(k===null)return;
+if(!OKU(c)||(k.trim()&&!OKU(k))){alert("網址格式不對。必須是 https://script.google.com/…/exec 這種完整網址（開頭 https，結尾 /exec）。請重新按「⚙ 設定」輸入。");return}localStorage.cloud=c.trim();localStorage.token=t.trim();localStorage.calc=k.trim();init()}
+async function init(){if(!OKU(L("cloud"))||!L("token")){setup();return}$("st").textContent="載入中…";
 try{const r=await cloud("getRoutes");if(r.status!=="success")throw new Error(r.message);S.routes=r.routes;renderList();
 const h=await cloud("getHistory");if(h.status==="success")$("hl").innerHTML=h.history.map(x=>`<option value="${x.replace(/"/g,"&quot;")}">`).join("");$("st").textContent="☁ 已連線 "+r.routes.length+" 條"}
 catch(e){$("st").textContent="❌ "+e.message;toast("連線失敗："+e.message,5000)}}
