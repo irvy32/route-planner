@@ -1,0 +1,109 @@
+<!DOCTYPE html><html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>路線規劃 雲端版</title><style>
+:root{--bg:#f4f6f8;--c:#fff;--t:#222;--b:#cfd8dc;--p:#1976d2}
+@media(prefers-color-scheme:dark){:root{--bg:#15191c;--c:#222a2f;--t:#e8eaed;--b:#46525a}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--t);font:15px/1.5 "Microsoft JhengHei",sans-serif;padding:8px;max-width:1200px;margin:auto}
+.card{background:var(--c);border:1px solid var(--b);border-radius:8px;padding:10px;margin-bottom:10px}
+h3{margin:0 0 6px;font-size:15px}input,select,textarea,button{font:inherit;color:var(--t);background:var(--c);border:1px solid var(--b);border-radius:5px;padding:5px 8px}
+button{cursor:pointer;color:#fff;border:0;margin:2px}.row{display:flex;flex-wrap:wrap;gap:4px;align-items:center;margin:4px 0}
+textarea{width:100%;font-size:13px}.g{background:#2e7d32}.b{background:var(--p)}.r{background:#c62828}.o{background:#ef6c00}.v{background:#6a1b9a}.t{background:#00897b}.k{background:#607d8b}
+.loc{display:flex;flex-wrap:wrap;align-items:center;gap:6px;padding:6px 4px;border-bottom:1px solid var(--b)}.loc.sel{background:rgba(25,118,210,.15)}
+.loc .n{flex:1 1 180px;cursor:pointer}.loc label{white-space:nowrap;font-size:13px}#msg{position:fixed;bottom:10px;left:10px;right:10px;background:#333;color:#fff;padding:8px;border-radius:6px;display:none;text-align:center}
+@media(min-width:900px){#out{display:grid;grid-template-columns:1fr 1fr;gap:10px}}
+</style></head><body>
+<div class="card"><div class="row"><b>🏍️ 路線規劃（雲端版）</b><button class="k" onclick="setup()">⚙ 設定</button><button class="k" onclick="phoneLink()">📱 複製手機設定連結</button><span id="st"></span></div></div>
+<div class="card"><h3>路線</h3><div class="row"><select id="sort" onchange="renderList()"><option value="desk">桌面版順序</option><option value="time">最近修改</option><option value="name">名稱</option><option value="count">地點數</option></select>
+<select id="rs" style="flex:1;min-width:160px"></select></div><div class="row">
+<button class="b" onclick="loadR()">載入</button><button class="g" onclick="saveR()">儲存</button><button class="t" onclick="dupR()">複製</button><button class="v" onclick="revR()">反向</button><button class="o" onclick="renR()">改名</button><button class="r" onclick="delR()">刪除</button><button class="k" onclick="init()">↻ 重新整理</button></div>
+<div class="row">名稱：<input id="nm" style="flex:1;min-width:160px"></div></div>
+<div class="card"><h3>行程設定</h3><div class="row">D Day 出發 <input id="h" size="2" maxlength="2" style="width:48px">:<input id="m" size="2" maxlength="2" style="width:48px"> 時間調整 <input id="adj" type="number" style="width:70px" value="100">%</div>
+<div class="row"><label><input type="checkbox" id="toll"> 避開收費</label><label><input type="checkbox" id="hwy"> 避開高速</label></div><div id="ex" class="row"></div>
+<textarea id="url" rows="2" placeholder="貼上 Google Maps 路線網址"></textarea><div class="row"><button class="b" onclick="parseU()">拆解網址</button></div></div>
+<div class="card"><h3>地點（<span id="cnt">0</span>）</h3><div class="row"><input id="add" list="hl" style="flex:1;min-width:160px" placeholder="輸入地點名稱"><datalist id="hl"></datalist><button class="g" onclick="addL()">＋</button></div>
+<div id="ll"></div><div class="row"><button class="k" onclick="mv(-1)">↑上移</button><button class="k" onclick="mv(1)">↓下移</button><button class="r" onclick="rmL()">刪除</button><button class="o" onclick="clr()">清空</button></div></div>
+<div class="card"><div class="row"><button class="g" onclick="gen()">生成連結＋輸出</button><button class="b" onclick="cpLink()">複製連結</button><a id="lk" target="_blank"></a></div><textarea id="lu" rows="3" readonly style="background:#fff9c4;color:#222" placeholder="生成後這裡會顯示簡短地名版連結"></textarea></div>
+<div id="out"><div class="card"><h3>格式一：詳細路線</h3><button class="b" onclick="cp('o1')">複製</button><textarea id="o1" rows="16"></textarea></div>
+<div class="card"><h3>格式二：活動公告</h3><button class="b" onclick="cp('o2')">複製</button><textarea id="o2" rows="16"></textarea></div></div><div id="msg"></div>
+<script>
+const ATTR={"大安休息站": "西濱公路休息站，可補給、欣賞海景", "古坑綠色隧道": "芒果樹形成的綠色隧道，適合拍照散步", "雲嶺之丘": "雲林最高點，360度環景，可觀雲海", "五元二角": "竹林秘境，日式風格的涼亭群", "1314觀景台": "海拔1314公尺，愛情主題觀景台", "太平雲梯": "全台最長景觀吊橋，俯瞰嘉南平原", "北港朝天宮": "國定古蹟，媽祖信仰中心"},ROAD={"山路": ["山", "嶺", "峰", "谷", "崖", "坡", "森林", "觀景台", "雲梯", "古道", "部落"], "快速道路": ["快速", "西濱", "台61", "休息站"], "省道/縣道": []},DEF_CALC="";
+const $=i=>document.getElementById(i),L=k=>localStorage.getItem(k)||"";
+const S={routes:[],loc:[],disp:[],rest:[],sel:-1,base:0,legs:null,extra:[]};
+function toast(t,ms=2500){const e=$("msg");e.textContent=t;e.style.display="block";clearTimeout(e._t);e._t=setTimeout(()=>e.style.display="none",ms)}
+async function api(url,p){const r=await fetch(url,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify(p)});return r.json()}
+const cloud=(a,x={})=>api(L("cloud"),Object.assign({action:a,token:L("token")},x));
+function phoneLink(){if(location.protocol==="file:")return toast("請在 GitHub Pages 網址開啟後再使用此按鈕",5000);if(!L("cloud"))return toast("請先完成設定");
+const u=location.href.split("#")[0]+"#"+new URLSearchParams({c:L("cloud"),t:L("token"),k:L("calc")}).toString();navigator.clipboard.writeText(u).then(()=>toast("已複製。傳給自己的手機開啟一次即可（含密碼，請勿公開）",6000))}
+function applyHash(){if(!location.hash)return;const q=new URLSearchParams(location.hash.slice(1));if(q.get("c")&&q.get("t")){localStorage.cloud=q.get("c");localStorage.token=q.get("t");if(q.get("k"))localStorage.calc=q.get("k");history.replaceState(null,"",location.pathname+location.search)}}
+function setup(){const c=prompt("雲端儲存網址（…/exec）",L("cloud"));if(c===null)return;const t=prompt("密碼",L("token"));if(t===null)return;
+const k=prompt("路線計算網址（桌面版原本那個）",L("calc")||DEF_CALC);if(k===null)return;localStorage.cloud=c.trim();localStorage.token=t.trim();localStorage.calc=k.trim();init()}
+async function init(){if(!L("cloud")||!L("token")){setup();return}$("st").textContent="載入中…";
+try{const r=await cloud("getRoutes");if(r.status!=="success")throw new Error(r.message);S.routes=r.routes;renderList();
+const h=await cloud("getHistory");if(h.status==="success")$("hl").innerHTML=h.history.map(x=>`<option value="${x.replace(/"/g,"&quot;")}">`).join("");$("st").textContent="☁ 已連線 "+r.routes.length+" 條"}
+catch(e){$("st").textContent="❌ "+e.message;toast("連線失敗："+e.message,5000)}}
+function sorted(){const a=S.routes.slice(),m=$("sort").value;localStorage.sort=m;
+if(m==="time")a.sort((x,y)=>y.updatedAt-x.updatedAt);else if(m==="name")a.sort((x,y)=>x.name.localeCompare(y.name,"zh-Hant"));else if(m==="count")a.sort((x,y)=>y.data.locations.length-x.data.locations.length);else a.sort((x,y)=>x.order-y.order);return a}
+function renderList(){const cur=$("nm").value;$("rs").innerHTML=sorted().map(r=>`<option value="${r.name.replace(/"/g,"&quot;")}">${r.name}（${r.data.locations.length}）</option>`).join("");if(cur)$("rs").value=cur}
+function pad2(x){x=String(x).trim();return x.length<2?"0"+x:x}
+function loadR(){const n=$("rs").value,r=S.routes.find(x=>x.name===n);if(!r)return;const d=r.data;
+S.loc=(d.locations||[]).slice();S.disp=(d.display_locations||S.loc).slice();S.rest=S.loc.map((_,i)=>d.rest_values&&d.rest_values[i]!=null?d.rest_values[i]:1);
+$("nm").value=n;$("h").value=pad2(d.start_hour||"6");$("m").value=pad2(d.start_minute||"0");$("adj").value=d.time_adjust_percent||100;$("toll").checked=!!d.avoid_tolls;$("hwy").checked=!!d.avoid_highways;
+S.extra=(d.day_extra_times||[]).map(x=>({h:x.hour,m:x.minute}));S.base=r.updatedAt;S.sel=-1;S.legs=null;draw();toast("已載入："+n)}
+function collect(){return{version:1,locations:S.loc,display_locations:S.disp,rest_values:S.rest,start_hour:$("h").value,start_minute:$("m").value,avoid_tolls:$("toll").checked,avoid_highways:$("hwy").checked,time_adjust_percent:+$("adj").value||100,day_extra_times:exVals()}}
+async function saveAs(name,base,force){const r=await cloud("saveRoute",{name,data:collect(),baseUpdatedAt:base,force:!!force});
+if(r.status==="conflict"){if(confirm("雲端有較新的版本（可能在另一台裝置改過）。要用目前內容覆蓋嗎？"))return saveAs(name,base,true);return false}
+if(r.status!=="success"){toast("儲存失敗："+r.message,5000);return false}S.base=r.updatedAt;await init();$("nm").value=name;$("rs").value=name;return true}
+async function saveR(){const n=$("nm").value.trim();if(!n)return toast("請輸入路線名稱");if(S.loc.length<2)return toast("至少需要 2 個地點");
+const ex=S.routes.find(x=>x.name===n);if(await saveAs(n,ex?S.base:0))toast("已儲存："+n)}
+async function dupR(){const o=$("nm").value.trim();if(!o)return toast("請先載入路線");let n=o+"_副本",i=1;while(S.routes.some(x=>x.name===n))n=o+"_副本"+i++;
+n=prompt("新路線名稱",n);if(!n)return;if(S.routes.some(x=>x.name===n.trim()))return toast("名稱已存在");if(await saveAs(n.trim(),0))toast("已複製為："+n)}
+function revR(){if(S.loc.length<2)return;if(!confirm("反向目前編輯中的路線？（按「儲存」才會寫入雲端）"))return;S.loc.reverse();S.disp.reverse();S.rest.reverse();S.legs=null;draw()}
+async function renR(){const o=$("rs").value;if(!o)return;const n=prompt("新名稱",o);if(!n||n===o)return;const r=await cloud("renameRoute",{oldName:o,newName:n.trim()});
+if(r.status!=="success")return toast(r.message,4000);await init();$("nm").value=n.trim();$("rs").value=n.trim()}
+async function delR(){const o=$("rs").value;if(!o||!confirm("刪除路線「"+o+"」？（會先放進雲端 trash 分頁，可復原）"))return;const r=await cloud("deleteRoute",{name:o});if(r.status!=="success")return toast(r.message);await init();toast("已刪除")}
+function draw(){$("cnt").textContent=S.loc.length;$("ll").innerHTML=S.loc.map((_,i)=>`<div class="loc ${i===S.sel?"sel":""}" onclick="S.sel=${i};draw()"><span class="n" ondblclick="ed(${i})">${String(i+1).padStart(2,"0")}. ${S.disp[i]}${i===0?" 〔出發〕":""}</span>`+
+(i===S.loc.length-1?"":[["不休",0],["短休10",1],["長休20",2],["過夜",3]].map(([t,v])=>`<label><input type="radio" name="r${i}" ${S.rest[i]===v?"checked":""} onclick="event.stopPropagation();S.rest[${i}]=${v};S.legs=null;drawEx()">${t}</label>`).join(""))+"</div>").join("");drawEx()}
+function ed(i){const n=prompt("修改顯示名稱",S.disp[i]);if(n){S.disp[i]=n.trim();draw()}}
+function drawEx(){const n=S.rest.slice(0,-1).filter(v=>v===3).length;while(S.extra.length<n)S.extra.push({h:"06",m:"00"});
+$("ex").innerHTML=Array.from({length:n},(_,i)=>`D+${i+1} 出發 <input id="eh${i}" value="${S.extra[i].h}" style="width:48px">:<input id="em${i}" value="${S.extra[i].m}" style="width:48px">`).join(" ")}
+function exVals(){return S.extra.map((e,i)=>({hour:$("eh"+i)?$("eh"+i).value:e.h,minute:$("em"+i)?$("em"+i).value:e.m}))}
+function addL(){const v=$("add").value.trim();if(!v)return;const at=S.sel>=0?S.sel+1:S.loc.length;S.loc.splice(at,0,v);S.disp.splice(at,0,v);S.rest.splice(at,0,1);S.sel=at;$("add").value="";S.legs=null;draw();cloud("saveHistory",{items:[v]})}
+function mv(d){const i=S.sel,j=i+d;if(i<0||j<0||j>=S.loc.length)return;for(const a of [S.loc,S.disp,S.rest])[a[i],a[j]]=[a[j],a[i]];S.sel=j;S.legs=null;draw()}
+function rmL(){if(S.sel<0)return;for(const a of [S.loc,S.disp,S.rest])a.splice(S.sel,1);S.sel=-1;S.legs=null;draw()}
+function clr(){if(confirm("清空所有地點？")){S.loc=[];S.disp=[];S.rest=[];S.sel=-1;S.legs=null;draw()}}
+function dec(s){s=s.replace(/\+/g," ");try{return decodeURIComponent(s)}catch(e){return s}}
+function shorten(f){let n=f.trim();if(/^\d{3}[\u4e00-\u9fff]/.test(n)){let a=n.replace(/^\d{3}台灣\S+?號\S*?/,"").trim();if(!a)a=n.replace(/^\d{3}台灣/,"").trim();n=a||n}
+n=n.replace(/\+\d{3}[\u4e00-\u9fff].+$/,"").trim();n=n.replace(/(?<=[\u4e00-\u9fff])\s+\d{3,6}[\u4e00-\u9fff].+$/,"").trim();
+n=n.replace(/(?<![A-Za-z0-9])\+(?![0-9])/g," ").trim();n=n.replace(/(?<![A-Za-z0-9])\+(?=[0-9]+\b(?![A-Za-z]))/g," ").trim();
+n=n.replace(/[（(][^）)]{1,10}[）)]/g,"").trim();n=n.replace(/\s*\d+號\s*$/,"").trim();return n||f}
+function parseU(){const u=$("url").value.trim();if(!u.includes("/dir/"))return toast("無法從網址拆解地點");
+const raw=u.split("/dir/")[1].split("/@")[0].split("/").filter(p=>p&&!p.startsWith("!")&&!p.startsWith("@")&&!p.includes("data=")).map(dec);
+if(!raw.length)return toast("無法從網址拆解地點");S.loc=raw;S.disp=raw.map(shorten);S.rest=raw.map(()=>1);S.sel=-1;S.legs=null;draw();toast("已拆解 "+raw.length+" 個地點");cloud("saveHistory",{items:S.disp})}
+const fT=m=>{m=Math.floor(m);const d=Math.floor(m/1440),x=m%1440;return String(Math.floor(x/60)).padStart(2,"0")+":"+String(x%60).padStart(2,"0")+(d?` (+${d}日)`:"")};
+const fD=m=>{const h=Math.floor(m/60),x=Math.floor(m%60);return h>0?`${h} 小時 ${x} 分`:`${x} 分`};
+function mapUrl(){const p=S.disp.map(l=>l.replace(/\//g,"／").replace(/#/g,"%23").replace(/\?/g,"%3F")).join("/");const f=($("toll").checked?"t":"")+($("hwy").checked?"h":"");return`https://www.google.com.tw/maps/dir/${p}/data=!4m2!4m1!3e0`+(f?`&dirflg=${f}`:"")}
+function realUrl(){const p=S.loc.map(l=>encodeURIComponent(l)).join("/");const f=($("toll").checked?"t":"")+($("hwy").checked?"h":"");return`https://www.google.com.tw/maps/dir/${p}/data=!4m2!4m1!3e0`+(f?`&dirflg=${f}`:"")}
+async function gen(){if(S.loc.length<2)return toast("至少需要 2 個地點");const calc=L("calc")||DEF_CALC;$("lk").href=realUrl();$("lk").textContent=" 🔗 開啟 Google Maps 導航";$("lu").value=mapUrl();toast("計算中…",60000);
+try{const legs=[];for(let s=0;s<S.loc.length-1;s+=7){const seg=S.loc.slice(s,s+8);const r=await api(calc,{locations:seg,avoidTolls:$("toll").checked,avoidHighways:$("hwy").checked});
+if(r.status!=="success")throw new Error(`第 ${s+1}～${s+seg.length} 個地點查詢失敗：${r.message||"請檢查地點名稱"}`);legs.push(...r.data)}S.legs=legs;render();toast("✓ 已更新")}catch(e){toast("失敗："+e.message,6000)}}
+function render(){const loc=S.disp,legs=S.legs,name=$("nm").value,adj=(+$("adj").value||100)/100,st=(+$("h").value||0)*60+(+$("m").value||0),ex=exVals();
+const dayStart=n=>{if(!n)return st;const e=ex[Math.min(n-1,ex.length-1)]||{};return(+e.hour||6)*60+(+e.minute||0)};
+let cd=0,ct=0,cur=st,tr=0,day=0;const sg=[];
+legs.forEach((lg,i)=>{const km=Math.floor(lg.distance.value/1000),du=lg.duration.value*adj/60;cd+=km;ct+=du;const ar=cur+du;let rt=0,ov=false;
+if(i<legs.length-1){const rv=S.rest[i+1]!=null?S.rest[i+1]:1;if(rv===3){ov=true;day++;const nx=dayStart(day),am=Math.floor(ar)%1440;rt=nx>am?nx-am:1440-am+nx}else rt=[0,10,20][rv]!=null?[0,10,20][rv]:10;tr+=rt}
+sg.push({f:loc[i],t:loc[i+1],km,du,cd,ct,rt,ar,dep:ar+rt,ov,day});cur=ar+rt});
+const td=ct,tt=td+tr,en=st+tt,rd=x=>x,lines=[];
+lines.push("#"+name,"","🏍️ 路線規劃結果 🏍️",`✅ 總覽：${loc[0]} → ${loc[loc.length-1]}`,`預計出發：${fT(st)}`,`預計抵達：${fT(en)}`,`總里程：${sg[sg.length-1].cd} 公里`,`總行駛時間：${fD(td)}`,`總休息時間：${fD(tr)} (預估)`,`總耗時：${fD(tt)}`,"§");
+sg.forEach((s,i)=>{let rtp="省道/縣道";for(const k in ROAD){if(ROAD[k].some(w=>s.t.includes(w))){rtp=k;break}}
+lines.push(`--- 第${i+1}段：${s.f} → #${s.t} (${rtp}) ---`,`🛣️ 距離：${s.km} 公里`,`🏍️ 行駛：${fD(s.du)}`,`🛣️ 累計距離：${s.cd} 公里`,`🏍️ 累計行駛：${fD(s.ct)}`,`📍 抵達：${fT(s.ar)}`);
+for(const k in ATTR){if(s.t.includes(k)){lines.push("✨ 推薦："+ATTR[k]);break}}
+if(s.rt>0){if(s.ov)lines.push(`🌙 過夜（${s.day>0?"D+"+s.day:"D Day"} ${fT(s.dep%1440)} 出發）`);else lines.push(`☕ 休息：${Math.floor(s.rt)} 分`,`➡️ 出發：${fT(s.dep)}`)}else lines.push("§");lines.push("§")});
+lines.push("","⚠️ 注意：請根據實際路況調整騎乘速度，山區路段請小心駕駛。","","🔗 完整 Google Maps 導航連結：",mapUrl());
+$("o1").value=lines.join("\n");
+const col=((st-30)%1440+1440)%1440,lg=sg.filter(s=>s.rt>=20).map(s=>s.t);
+$("o2").value=[`【${name}】｜機車巡航之旅`,"","📅 日期： [請發起人填寫]",`⏰ 集合時間：${fT(col)} (準時)`,`🏍️ 出發時間：${fT(st)} (準時出發，不等人)`,`📍 集合地點：${loc[0]}`,`🛣️ 目的地/路線：${loc[0]} → ${loc.slice(1,-1).join(" → ")} → ${loc[loc.length-1]}`,`📌 總里程：${sg[sg.length-1].cd} 公里`,`⏱️ 總耗時：約 ${Math.floor(tt/60)} 小時 ${Math.floor(tt%60)} 分 (預估，含休息)`,"",
+"🏁 騎乘風格與分組建議：","· 本次騎乘風格： 山道觀光巡航組，以探訪高山秘境為主。","· 建議速度： 山區道路多狹窄彎道，請務必減速慢行，嚴禁越線。","· 重要提醒： 路線包含大量高山縣道，需具備一定的山道騎乘經驗。","","🗺️ 行程概覽與重點休息點：",lg.length?`· 重點休息點（長休20分）：${lg.join(", ")}`:"· 重點休息點：無長休站點","",
+"👥 領隊與壓隊：","· 領隊： [發起人暱稱]","· 壓隊： [徵求自願者]","","⚙️ 行前必讀與安全公約：","1.  安全自負： 請自行確認車況，為自身安全負完全責任。","2.  裝備要求： 全罩安全帽、手套、防摔衣褲、保暖衣物。","3.  團隊紀律： 遵從領隊指揮，山道不越線，保持安全距離。","4.  體力管理： 山路騎乘耗體力，請備足飲水與補給。","5.  天氣因應： 若遇雨或濃霧，活動將取消或調整。","","✍️ 報名與確認：","請在此留言「+1」，並私訊發起人：","· 暱稱：","· 車型/顏色：","· 手機號碼：","","---","","用輪胎劃過山與海，收集最美的風景。","","「騎帥不騎快，我們路上見！」 🏍️💨","","---","發起人： [您的暱稱]","發佈日期：[發佈當天日期]"].join("\n")}
+function cpLink(){const v=$("lu").value||(S.loc.length>1?mapUrl():"");if(!v)return toast("請先生成連結");if(!$("lu").value)$("lu").value=v;cp("lu")}
+function cp(id){const e=$(id);e.select();navigator.clipboard?navigator.clipboard.writeText(e.value).then(()=>toast("已複製")):document.execCommand("copy")}
+applyHash();$("sort").value=L("sort")||"desk";init();
+</script></body></html>
