@@ -16,8 +16,8 @@ textarea{width:100%;font-size:13px}.g{background:#2e7d32}.b{background:var(--p)}
 <select id="rs" style="flex:1;min-width:160px"></select></div><div class="row">
 <button class="b" onclick="loadR()">載入</button><button class="g" onclick="saveR()">儲存</button><button class="t" onclick="dupR()">複製</button><button class="v" onclick="revR()">反向</button><button class="o" onclick="renR()">改名</button><button class="r" onclick="delR()">刪除</button><button class="k" onclick="init()">↻ 重新整理</button></div>
 <div class="row">名稱：<input id="nm" style="flex:1;min-width:160px"></div></div>
-<div class="card"><h3>行程設定</h3><div class="row">D Day 出發 <input id="h" size="2" maxlength="2" style="width:48px">:<input id="m" size="2" maxlength="2" style="width:48px"> 時間調整 <input id="adj" type="number" style="width:70px" value="100">%</div>
-<div class="row"><label><input type="checkbox" id="toll"> 避開收費</label><label><input type="checkbox" id="hwy"> 避開高速</label></div><div id="ex" class="row"></div>
+<div class="card"><h3>行程設定</h3><div class="row">D Day 出發 <input id="h" size="2" maxlength="2" style="width:48px" oninput="reGen()">:<input id="m" size="2" maxlength="2" style="width:48px" oninput="reGen()"> 時間調整 <input id="adj" type="number" style="width:70px" value="100" oninput="reGen()">%</div>
+<div class="row"><label><input type="checkbox" id="toll" onchange="S.legs=null"> 避開收費</label><label><input type="checkbox" id="hwy" onchange="S.legs=null"> 避開高速</label></div><div class="row"><button class="k" id="dnb" onclick="tgDN()">▶ D+N設定</button></div><div id="ex" class="row" style="display:none"></div>
 <textarea id="url" rows="2" placeholder="貼上 Google Maps 路線網址"></textarea><div class="row"><button class="b" onclick="parseU()">拆解網址</button></div></div>
 <div class="card"><h3>地點（<span id="cnt">0</span>）</h3><div class="row"><input id="add" list="hl" style="flex:1;min-width:160px" placeholder="輸入地點名稱"><datalist id="hl"></datalist><button class="g" onclick="addL()">＋</button></div>
 <div id="ll"></div><div class="row"><button class="k" onclick="mv(-1)">↑上移</button><button class="k" onclick="mv(1)">↓下移</button><button class="r" onclick="rmL()">刪除</button><button class="o" onclick="clr()">清空</button></div></div>
@@ -49,7 +49,7 @@ function pad2(x){x=String(x).trim();return x.length<2?"0"+x:x}
 function loadR(){const n=$("rs").value,r=S.routes.find(x=>x.name===n);if(!r)return;const d=r.data;
 S.loc=(d.locations||[]).slice();S.disp=(d.display_locations||S.loc).slice();S.rest=S.loc.map((_,i)=>d.rest_values&&d.rest_values[i]!=null?d.rest_values[i]:1);
 $("nm").value=n;$("h").value=pad2(d.start_hour||"6");$("m").value=pad2(d.start_minute||"0");$("adj").value=d.time_adjust_percent||100;$("toll").checked=!!d.avoid_tolls;$("hwy").checked=!!d.avoid_highways;
-S.extra=(d.day_extra_times||[]).map(x=>({h:x.hour,m:x.minute}));S.base=r.updatedAt;S.sel=-1;S.legs=null;draw();toast("已載入："+n)}
+S.extra=(d.day_extra_times||[]).map(x=>({h:pad2(x.hour),m:pad2(x.minute)}));S.base=r.updatedAt;S.sel=-1;S.legs=null;draw();toast("已載入："+n)}
 function collect(){return{version:1,locations:S.loc,display_locations:S.disp,rest_values:S.rest,start_hour:$("h").value,start_minute:$("m").value,avoid_tolls:$("toll").checked,avoid_highways:$("hwy").checked,time_adjust_percent:+$("adj").value||100,day_extra_times:exVals()}}
 async function saveAs(name,base,force){const r=await cloud("saveRoute",{name,data:collect(),baseUpdatedAt:base,force:!!force});
 if(r.status==="conflict"){if(confirm("雲端有較新的版本（可能在另一台裝置改過）。要用目前內容覆蓋嗎？"))return saveAs(name,base,true);return false}
@@ -63,11 +63,12 @@ async function renR(){const o=$("rs").value;if(!o)return;const n=prompt("新名�
 if(r.status!=="success")return toast(r.message,4000);await init();$("nm").value=n.trim();$("rs").value=n.trim()}
 async function delR(){const o=$("rs").value;if(!o||!confirm("刪除路線「"+o+"」？（會先放進雲端 trash 分頁，可復原）"))return;const r=await cloud("deleteRoute",{name:o});if(r.status!=="success")return toast(r.message);await init();toast("已刪除")}
 function draw(){$("cnt").textContent=S.loc.length;$("ll").innerHTML=S.loc.map((_,i)=>`<div class="loc ${i===S.sel?"sel":""}" onclick="S.sel=${i};draw()"><span class="n" ondblclick="ed(${i})">${String(i+1).padStart(2,"0")}. ${S.disp[i]}${i===0?" 〔出發〕":""}</span>`+
-(i===S.loc.length-1?"":[["不休",0],["短休10",1],["長休20",2],["過夜",3]].map(([t,v])=>`<label><input type="radio" name="r${i}" ${S.rest[i]===v?"checked":""} onclick="event.stopPropagation();S.rest[${i}]=${v};S.legs=null;drawEx()">${t}</label>`).join(""))+"</div>").join("");drawEx()}
+(i===S.loc.length-1?"":[["不休",0],["短休10",1],["長休20",2],["過夜",3]].map(([t,v])=>`<label><input type="radio" name="r${i}" ${S.rest[i]===v?"checked":""} onclick="event.stopPropagation();S.rest[${i}]=${v};reGen()">${t}</label>`).join(""))+"</div>").join("");drawEx()}
 function ed(i){const n=prompt("修改顯示名稱",S.disp[i]);if(n){S.disp[i]=n.trim();draw()}}
-function drawEx(){const n=S.rest.slice(0,-1).filter(v=>v===3).length;while(S.extra.length<n)S.extra.push({h:"06",m:"00"});
-$("ex").innerHTML=Array.from({length:n},(_,i)=>`D+${i+1} 出發 <input id="eh${i}" value="${S.extra[i].h}" style="width:48px">:<input id="em${i}" value="${S.extra[i].m}" style="width:48px">`).join(" ")}
-function exVals(){return S.extra.map((e,i)=>({hour:$("eh"+i)?$("eh"+i).value:e.h,minute:$("em"+i)?$("em"+i).value:e.m}))}
+function tgDN(){const e=$("ex"),on=e.style.display==="none";e.style.display=on?"flex":"none";$("dnb").textContent=(on?"▼":"▶")+" D+N設定"}
+function reGen(){if(S.legs&&S.legs.length===S.loc.length-1)render()}
+function drawEx(){while(S.extra.length<4)S.extra.push({h:"06",m:"00"});$("ex").innerHTML=[0,1,2,3].map(i=>`D+${i+1} <input value="${S.extra[i].h}" oninput="S.extra[${i}].h=this.value;reGen()" style="width:48px">:<input value="${S.extra[i].m}" oninput="S.extra[${i}].m=this.value;reGen()" style="width:48px">`).join(" ")}
+function exVals(){return S.extra.map(e=>({hour:e.h,minute:e.m}))}
 function addL(){const v=$("add").value.trim();if(!v)return;const at=S.sel>=0?S.sel+1:S.loc.length;S.loc.splice(at,0,v);S.disp.splice(at,0,v);S.rest.splice(at,0,1);S.sel=at;$("add").value="";S.legs=null;draw();cloud("saveHistory",{items:[v]})}
 function mv(d){const i=S.sel,j=i+d;if(i<0||j<0||j>=S.loc.length)return;for(const a of [S.loc,S.disp,S.rest])[a[i],a[j]]=[a[j],a[i]];S.sel=j;S.legs=null;draw()}
 function rmL(){if(S.sel<0)return;for(const a of [S.loc,S.disp,S.rest])a.splice(S.sel,1);S.sel=-1;S.legs=null;draw()}
