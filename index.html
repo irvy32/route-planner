@@ -17,17 +17,17 @@ textarea{width:100%;font-size:13px}.g{background:#2e7d32}.b{background:var(--p)}
 <button class="b" onclick="loadR()">載入</button><button class="g" onclick="saveR()">儲存</button><button class="t" onclick="dupR()">複製</button><button class="v" onclick="revR()">反向</button><button class="o" onclick="renR()">改名</button><button class="r" onclick="delR()">刪除</button><button class="k" onclick="init()">↻ 重新整理</button></div>
 <div class="row">名稱：<input id="nm" style="flex:1;min-width:160px"></div></div>
 <div class="card"><h3>行程設定</h3><div class="row">D Day 出發 <input id="h" size="2" maxlength="2" style="width:48px" oninput="reGen()">:<input id="m" size="2" maxlength="2" style="width:48px" oninput="reGen()"> 時間調整 <input id="adj" type="number" style="width:70px" value="100" oninput="reGen()">%</div>
-<div class="row"><label><input type="checkbox" id="toll" onchange="S.legs=null"> 避開收費</label><label><input type="checkbox" id="hwy" onchange="S.legs=null"> 避開高速</label></div><div class="row"><button class="k" id="dnb" onclick="tgDN()">▶ D+N設定</button></div><div id="ex" class="row" style="display:none"></div>
+<div class="row"><label><input type="checkbox" id="toll" onchange="S.legs=null;caInfo()"> 避開收費</label><label><input type="checkbox" id="hwy" onchange="S.legs=null;caInfo()"> 避開高速</label></div><div class="row"><button class="k" id="dnb" onclick="tgDN()">▶ D+N設定</button></div><div id="ex" class="row" style="display:none"></div>
 <textarea id="url" rows="2" placeholder="貼上 Google Maps 路線網址"></textarea><div class="row"><button class="b" onclick="parseU()">拆解網址</button></div></div>
 <div class="card"><h3>地點（<span id="cnt">0</span>）</h3><div class="row"><input id="add" list="hl" style="flex:1;min-width:160px" placeholder="輸入地點名稱"><datalist id="hl"></datalist><button class="g" onclick="addL()">＋</button></div>
 <div id="ll"></div><div class="row"><button class="k" onclick="mv(-1)">↑上移</button><button class="k" onclick="mv(1)">↓下移</button><button class="r" onclick="rmL()">刪除</button><button class="o" onclick="clr()">清空</button></div></div>
-<div class="card"><div class="row"><button class="g" onclick="gen()">生成連結＋輸出</button><button class="b" onclick="cpLink()">複製連結</button><a id="lk" target="_blank"></a></div><textarea id="lu" rows="3" readonly style="background:#fff9c4;color:#222" placeholder="生成後這裡會顯示簡短地名版連結"></textarea></div>
+<div class="card"><div class="row"><button class="g" onclick="gen()">生成連結＋輸出</button><button class="b" onclick="cpLink()">複製連結</button><button class="k" onclick="gen(true)">重新向 Google 查詢</button><a id="lk" target="_blank"></a><span id="ca" style="font-size:13px"></span></div><textarea id="lu" rows="3" readonly style="background:#fff9c4;color:#222" placeholder="生成後這裡會顯示簡短地名版連結"></textarea></div>
 <div id="out"><div class="card"><h3>格式一：詳細路線</h3><button class="b" onclick="cp('o1')">複製</button><textarea id="o1" rows="16"></textarea></div>
 <div class="card"><h3>格式二：活動公告</h3><button class="b" onclick="cp('o2')">複製</button><textarea id="o2" rows="16"></textarea></div></div><div id="msg"></div>
 <script>
 const ATTR={"大安休息站": "西濱公路休息站，可補給、欣賞海景", "古坑綠色隧道": "芒果樹形成的綠色隧道，適合拍照散步", "雲嶺之丘": "雲林最高點，360度環景，可觀雲海", "五元二角": "竹林秘境，日式風格的涼亭群", "1314觀景台": "海拔1314公尺，愛情主題觀景台", "太平雲梯": "全台最長景觀吊橋，俯瞰嘉南平原", "北港朝天宮": "國定古蹟，媽祖信仰中心"},ROAD={"山路": ["山", "嶺", "峰", "谷", "崖", "坡", "森林", "觀景台", "雲梯", "古道", "部落"], "快速道路": ["快速", "西濱", "台61", "休息站"], "省道/縣道": []},DEF_CALC="";
 const $=i=>document.getElementById(i),L=k=>localStorage.getItem(k)||"";
-const S={routes:[],loc:[],disp:[],rest:[],sel:-1,base:0,legs:null,extra:[]};
+const S={cache:{},cacheAt:0,routes:[],loc:[],disp:[],rest:[],sel:-1,base:0,legs:null,extra:[]};
 function toast(t,ms=2500){const e=$("msg");e.textContent=t;e.style.display="block";clearTimeout(e._t);e._t=setTimeout(()=>e.style.display="none",ms)}
 async function api(url,p){const r=await fetch(url,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify(p)});return r.json()}
 const cloud=(a,x={})=>api(L("cloud"),Object.assign({action:a,token:L("token")},x));
@@ -49,8 +49,8 @@ function pad2(x){x=String(x).trim();return x.length<2?"0"+x:x}
 function loadR(){const n=$("rs").value,r=S.routes.find(x=>x.name===n);if(!r)return;const d=r.data;
 S.loc=(d.locations||[]).slice();S.disp=(d.display_locations||S.loc).slice();S.rest=S.loc.map((_,i)=>d.rest_values&&d.rest_values[i]!=null?d.rest_values[i]:1);
 $("nm").value=n;$("h").value=pad2(d.start_hour||"6");$("m").value=pad2(d.start_minute||"0");$("adj").value=d.time_adjust_percent||100;$("toll").checked=!!d.avoid_tolls;$("hwy").checked=!!d.avoid_highways;
-S.extra=(d.day_extra_times||[]).map(x=>({h:pad2(x.hour),m:pad2(x.minute)}));S.base=r.updatedAt;S.sel=-1;S.legs=null;draw();toast("已載入："+n)}
-function collect(){return{version:1,locations:S.loc,display_locations:S.disp,rest_values:S.rest,start_hour:$("h").value,start_minute:$("m").value,avoid_tolls:$("toll").checked,avoid_highways:$("hwy").checked,time_adjust_percent:+$("adj").value||100,day_extra_times:exVals()}}
+S.extra=(d.day_extra_times||[]).map(x=>({h:pad2(x.hour),m:pad2(x.minute)}));S.base=r.updatedAt;S.sel=-1;S.legs=null;S.cache=(d.legs_cache&&d.legs_cache.pairs)||{};S.cacheAt=(d.legs_cache&&d.legs_cache.at)||0;draw();showLink();if(fromCache())render();else{$("o1").value="";$("o2").value=""}caInfo();toast("已載入："+n+(S.legs?"（使用已存的路線資料，未呼叫 Google）":""),4000)}
+function collect(){return{version:1,locations:S.loc,display_locations:S.disp,rest_values:S.rest,start_hour:$("h").value,start_minute:$("m").value,avoid_tolls:$("toll").checked,avoid_highways:$("hwy").checked,time_adjust_percent:+$("adj").value||100,day_extra_times:exVals(),legs_cache:packCache()}}
 async function saveAs(name,base,force){const r=await cloud("saveRoute",{name,data:collect(),baseUpdatedAt:base,force:!!force});
 if(r.status==="conflict"){if(confirm("雲端有較新的版本（可能在另一台裝置改過）。要用目前內容覆蓋嗎？"))return saveAs(name,base,true);return false}
 if(r.status!=="success"){toast("儲存失敗："+r.message,5000);return false}S.base=r.updatedAt;await init();$("nm").value=name;$("rs").value=name;return true}
@@ -63,7 +63,7 @@ async function renR(){const o=$("rs").value;if(!o)return;const n=prompt("新名�
 if(r.status!=="success")return toast(r.message,4000);await init();$("nm").value=n.trim();$("rs").value=n.trim()}
 async function delR(){const o=$("rs").value;if(!o||!confirm("刪除路線「"+o+"」？（會先放進雲端 trash 分頁，可復原）"))return;const r=await cloud("deleteRoute",{name:o});if(r.status!=="success")return toast(r.message);await init();toast("已刪除")}
 function draw(){$("cnt").textContent=S.loc.length;$("ll").innerHTML=S.loc.map((_,i)=>`<div class="loc ${i===S.sel?"sel":""}" onclick="S.sel=${i};draw()"><span class="n" ondblclick="ed(${i})">${String(i+1).padStart(2,"0")}. ${S.disp[i]}${i===0?" 〔出發〕":""}</span>`+
-(i===S.loc.length-1?"":[["不休",0],["短休10",1],["長休20",2],["過夜",3]].map(([t,v])=>`<label><input type="radio" name="r${i}" ${S.rest[i]===v?"checked":""} onclick="event.stopPropagation();S.rest[${i}]=${v};reGen()">${t}</label>`).join(""))+"</div>").join("");drawEx()}
+(i===S.loc.length-1?"":[["不休",0],["短休10",1],["長休20",2],["過夜",3]].map(([t,v])=>`<label><input type="radio" name="r${i}" ${S.rest[i]===v?"checked":""} onclick="event.stopPropagation();S.rest[${i}]=${v};reGen()">${t}</label>`).join(""))+"</div>").join("");drawEx();caInfo()}
 function ed(i){const n=prompt("修改顯示名稱",S.disp[i]);if(n){S.disp[i]=n.trim();draw()}}
 function tgDN(){const e=$("ex"),on=e.style.display==="none";e.style.display=on?"flex":"none";$("dnb").textContent=(on?"▼":"▶")+" D+N設定"}
 function reGen(){if(S.legs&&S.legs.length===S.loc.length-1)render()}
@@ -85,9 +85,22 @@ const fT=m=>{m=Math.floor(m);const d=Math.floor(m/1440),x=m%1440;return String(M
 const fD=m=>{const h=Math.floor(m/60),x=Math.floor(m%60);return h>0?`${h} 小時 ${x} 分`:`${x} 分`};
 function mapUrl(){const p=S.disp.map(l=>l.replace(/\//g,"／").replace(/#/g,"%23").replace(/\?/g,"%3F")).join("/");const f=($("toll").checked?"t":"")+($("hwy").checked?"h":"");return`https://www.google.com.tw/maps/dir/${p}/data=!4m2!4m1!3e0`+(f?`&dirflg=${f}`:"")}
 function realUrl(){const p=S.loc.map(l=>encodeURIComponent(l)).join("/");const f=($("toll").checked?"t":"")+($("hwy").checked?"h":"");return`https://www.google.com.tw/maps/dir/${p}/data=!4m2!4m1!3e0`+(f?`&dirflg=${f}`:"")}
-async function gen(){if(S.loc.length<2)return toast("至少需要 2 個地點");const calc=L("calc")||DEF_CALC;$("lk").href=realUrl();$("lk").textContent=" 🔗 開啟 Google Maps 導航";$("lu").value=mapUrl();toast("計算中…",60000);
-try{const legs=[];for(let s=0;s<S.loc.length-1;s+=7){const seg=S.loc.slice(s,s+8);const r=await api(calc,{locations:seg,avoidTolls:$("toll").checked,avoidHighways:$("hwy").checked});
-if(r.status!=="success")throw new Error(`第 ${s+1}～${s+seg.length} 個地點查詢失敗：${r.message||"請檢查地點名稱"}`);legs.push(...r.data)}S.legs=legs;render();toast("✓ 已更新")}catch(e){toast("失敗："+e.message,6000)}}
+const lk=i=>S.loc[i]+"→"+S.loc[i+1]+"|"+($("toll").checked?1:0)+($("hwy").checked?1:0);
+function packCache(){const p={};for(let i=0;i<S.loc.length-1;i++){const c=S.cache[lk(i)];if(c)p[lk(i)]=c}return{at:S.cacheAt||0,pairs:p}}
+function fromCache(){const n=S.loc.length-1;if(n<1)return false;const a=[];for(let i=0;i<n;i++){const c=S.cache[lk(i)];if(!c)return false;a.push({distance:{value:c[0]},duration:{value:c[1]}})}S.legs=a;return true}
+function showLink(){if(S.loc.length<2)return;$("lk").href=realUrl();$("lk").textContent=" 🔗 開啟 Google Maps 導航";$("lu").value=mapUrl()}
+function caInfo(){const n=S.loc.length-1;if(n<1){$("ca").textContent="";return}let m=0;for(let i=0;i<n;i++)if(!S.cache[lk(i)])m++;
+$("ca").textContent=m===0?" ✓ 路線資料已快取"+(S.cacheAt?"（計算於 "+new Date(S.cacheAt).toLocaleDateString("zh-TW")+"）":""):` 需向 Google 查詢 ${m} 段`}
+async function gen(force){if(S.loc.length<2)return toast("至少需要 2 個地點");showLink();const n=S.loc.length-1,need=[];
+for(let i=0;i<n;i++)if(force===true||!S.cache[lk(i)])need.push(i);
+if(!need.length){fromCache();render();caInfo();return toast("已使用快取，未呼叫 Google")}
+const calc=L("calc");if(!OKU(calc))return toast("請先到「⚙ 設定」填入路線計算網址",5000);toast("向 Google 查詢 "+need.length+" 段…",60000);
+try{const runs=[];need.forEach(i=>{const r=runs[runs.length-1];if(r&&r.e===i-1)r.e=i;else runs.push({s:i,e:i})});
+for(const r of runs)for(let s=r.s;s<=r.e;s+=7){const e=Math.min(s+6,r.e),seg=S.loc.slice(s,e+2);
+const res=await api(calc,{locations:seg,avoidTolls:$("toll").checked,avoidHighways:$("hwy").checked});
+if(res.status!=="success")throw new Error(`第 ${s+1}～${e+2} 個地點查詢失敗：${res.message||"請檢查地點名稱"}`);
+if(!res.data||res.data.length!==e-s+1)throw new Error("回傳段數不符");res.data.forEach((lg,j)=>{S.cache[lk(s+j)]=[lg.distance.value,lg.duration.value]})}
+S.cacheAt=Date.now();fromCache();render();caInfo();toast("✓ 已更新（按「儲存」可保存查詢結果，下次載入免查詢）",6000)}catch(e){toast("失敗："+e.message,6000)}}
 function render(){const loc=S.disp,legs=S.legs,name=$("nm").value,adj=(+$("adj").value||100)/100,st=(+$("h").value||0)*60+(+$("m").value||0),ex=exVals();
 const dayStart=n=>{if(!n)return st;const e=ex[Math.min(n-1,ex.length-1)]||{};return(+e.hour||6)*60+(+e.minute||0)};
 let cd=0,ct=0,cur=st,tr=0,day=0;const sg=[];
