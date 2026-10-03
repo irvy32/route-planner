@@ -1,5 +1,5 @@
 <!DOCTYPE html><html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>路線規劃 雲端版</title><style>
+<title>路線規劃 雲端版</title><link rel="manifest" href="manifest.json"><meta name="theme-color" content="#1976d2"><link rel="icon" href="icon.png"><link rel="apple-touch-icon" href="icon.png"><style>
 :root{--bg:#f4f6f8;--c:#fff;--t:#222;--b:#cfd8dc;--p:#1976d2}
 @media(prefers-color-scheme:dark){:root{--bg:#15191c;--c:#222a2f;--t:#e8eaed;--b:#46525a}}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--t);font:15px/1.5 "Microsoft JhengHei",sans-serif;padding:8px;max-width:1200px;margin:auto}
@@ -10,16 +10,16 @@ textarea{width:100%;font-size:13px}.g{background:#2e7d32}.b{background:var(--p)}
 .loc{display:flex;flex-wrap:wrap;align-items:center;gap:6px;padding:6px 4px;border-bottom:1px solid var(--b)}.loc.sel{background:rgba(25,118,210,.15)}
 .loc .n{flex:1 1 180px;cursor:pointer}.loc label{white-space:nowrap;font-size:13px}#msg{position:fixed;bottom:10px;left:10px;right:10px;background:#333;color:#fff;padding:8px;border-radius:6px;display:none;text-align:center}
 @media(min-width:900px){#out{display:grid;grid-template-columns:1fr 1fr;gap:10px}}
-</style></head><body>
+.loc.bad{background:rgba(198,40,40,.28)}.h{cursor:grab;touch-action:none;user-select:none;padding:0 8px;font-size:20px;color:#888}.loc.dov{outline:2px dashed var(--p)}.loc.dragging{opacity:.5}#cand button{margin:2px 0}</style></head><body>
 <div class="card"><div class="row"><b>🏍️ 路線規劃（雲端版）</b><button class="k" onclick="setup()">⚙ 設定</button><button class="k" onclick="phoneLink()">📱 複製手機設定連結</button><span id="st"></span></div></div>
 <div class="card"><h3>路線</h3><div class="row"><select id="sort" onchange="renderList()"><option value="desk">桌面版順序</option><option value="time">最近修改</option><option value="name">名稱</option><option value="count">地點數</option></select>
 <select id="rs" style="flex:1;min-width:160px"></select></div><div class="row">
-<button class="b" onclick="loadR()">載入</button><button class="g" onclick="saveR()">儲存</button><button class="t" onclick="dupR()">複製</button><button class="v" onclick="revR()">反向</button><button class="o" onclick="renR()">改名</button><button class="r" onclick="delR()">刪除</button><button class="k" onclick="init()">↻ 重新整理</button></div>
+<button class="b" onclick="loadR()">載入</button><button class="g" onclick="saveR()">儲存</button><button class="t" onclick="dupR()">複製</button><button class="v" onclick="revR()">反向</button><button class="o" onclick="renR()">改名</button><button class="r" onclick="delR()">刪除</button><button class="k" onclick="init()">↻ 重新整理</button><button class="o" id="bf" onclick="batchFill()">⚡ 補齊所有路線快取</button></div>
 <div class="row">名稱：<input id="nm" style="flex:1;min-width:160px"></div></div>
 <div class="card"><h3>行程設定</h3><div class="row">D Day 出發 <input id="h" size="2" maxlength="2" style="width:48px" oninput="reGen()">:<input id="m" size="2" maxlength="2" style="width:48px" oninput="reGen()"> 時間調整 <input id="adj" type="number" style="width:70px" value="100" oninput="reGen()">%</div>
 <div class="row"><label><input type="checkbox" id="toll" onchange="S.legs=null;caInfo()"> 避開收費</label><label><input type="checkbox" id="hwy" onchange="S.legs=null;caInfo()"> 避開高速</label></div><div class="row"><button class="k" id="dnb" onclick="tgDN()">▶ D+N設定</button></div><div id="ex" class="row" style="display:none"></div>
 <textarea id="url" rows="2" placeholder="貼上 Google Maps 路線網址"></textarea><div class="row"><button class="b" onclick="parseU()">拆解網址</button></div></div>
-<div class="card"><h3>地點（<span id="cnt">0</span>）</h3><div class="row"><input id="add" list="hl" style="flex:1;min-width:160px" placeholder="輸入地點名稱"><datalist id="hl"></datalist><button class="g" onclick="addL()">＋</button></div>
+<div class="card"><h3>地點（<span id="cnt">0</span>）</h3><div class="row"><input id="add" list="hl" style="flex:1;min-width:160px" placeholder="輸入地點名稱"><datalist id="hl"></datalist><button class="g" onclick="addL()">＋</button></div><div id="cand"></div>
 <div id="ll"></div><div class="row"><button class="k" onclick="mv(-1)">↑上移</button><button class="k" onclick="mv(1)">↓下移</button><button class="r" onclick="rmL()">刪除</button><button class="o" onclick="clr()">清空</button></div></div>
 <div class="card"><div class="row"><button class="g" onclick="gen()">生成連結＋輸出</button><button class="b" onclick="cpLink()">複製連結</button><button class="k" onclick="gen(true)">重新向 Google 查詢</button><a id="lk" target="_blank"></a><span id="ca" style="font-size:13px"></span></div><textarea id="lu" rows="3" readonly style="background:#fff9c4;color:#222" placeholder="生成後這裡會顯示簡短地名版連結"></textarea></div>
 <div id="out"><div class="card"><h3>格式一：詳細路線</h3><button class="b" onclick="cp('o1')">複製</button><textarea id="o1" rows="16"></textarea></div>
@@ -27,10 +27,12 @@ textarea{width:100%;font-size:13px}.g{background:#2e7d32}.b{background:var(--p)}
 <script>
 const ATTR={"大安休息站": "西濱公路休息站，可補給、欣賞海景", "古坑綠色隧道": "芒果樹形成的綠色隧道，適合拍照散步", "雲嶺之丘": "雲林最高點，360度環景，可觀雲海", "五元二角": "竹林秘境，日式風格的涼亭群", "1314觀景台": "海拔1314公尺，愛情主題觀景台", "太平雲梯": "全台最長景觀吊橋，俯瞰嘉南平原", "北港朝天宮": "國定古蹟，媽祖信仰中心"},ROAD={"山路": ["山", "嶺", "峰", "谷", "崖", "坡", "森林", "觀景台", "雲梯", "古道", "部落"], "快速道路": ["快速", "西濱", "台61", "休息站"], "省道/縣道": []},DEF_CALC="";
 const $=i=>document.getElementById(i),L=k=>localStorage.getItem(k)||"";
-const S={cache:{},cacheAt:0,routes:[],loc:[],disp:[],rest:[],sel:-1,base:0,legs:null,extra:[]};
+const S={cache:{},cacheAt:0,shared:{},offline:false,lastSync:0,bad:new Set(),badSig:"",routes:[],loc:[],disp:[],rest:[],sel:-1,base:0,legs:null,extra:[]};
 function toast(t,ms=2500){const e=$("msg");e.textContent=t;e.style.display="block";clearTimeout(e._t);e._t=setTimeout(()=>e.style.display="none",ms)}
 async function api(url,p){const r=await fetch(url,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify(p)});return r.json()}
-const cloud=(a,x={})=>api(L("cloud"),Object.assign({action:a,token:L("token")},x));
+const cloud=(a,x={})=>S.offline?Promise.resolve({status:"error",message:"目前離線，無法連線雲端"}):api(L("cloud"),Object.assign({action:a,token:L("token")},x));
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const hideToast=()=>{$("msg").style.display="none"};
 function phoneLink(){if(location.protocol==="file:")return toast("請在 GitHub Pages 網址開啟後再使用此按鈕",5000);if(!L("cloud"))return toast("請先完成設定");
 const u=location.href.split("#")[0]+"#"+new URLSearchParams({c:L("cloud"),t:L("token"),k:L("calc")}).toString();navigator.clipboard.writeText(u).then(()=>toast("已複製。傳給自己的手機開啟一次即可（含密碼，請勿公開）",6000))}
 function applyHash(){if(!location.hash)return;const q=new URLSearchParams(location.hash.slice(1));if(q.get("c")&&q.get("t")){localStorage.cloud=q.get("c");localStorage.token=q.get("t");if(q.get("k"))localStorage.calc=q.get("k");history.replaceState(null,"",location.pathname+location.search)}}
@@ -38,10 +40,22 @@ const OKU=u=>/^https:\/\/script\.google\.com\/.+\/exec$/.test((u||"").trim());
 function setup(){const c=prompt("雲端儲存網址（…/exec）",L("cloud"));if(c===null)return;const t=prompt("密碼",L("token"));if(t===null)return;
 const k=prompt("路線計算網址（桌面版原本那個）",L("calc")||DEF_CALC);if(k===null)return;
 if(!OKU(c)||(k.trim()&&!OKU(k))){alert("網址格式不對。必須是 https://script.google.com/…/exec 這種完整網址（開頭 https，結尾 /exec）。請重新按「⚙ 設定」輸入。");return}localStorage.cloud=c.trim();localStorage.token=t.trim();localStorage.calc=k.trim();init()}
-async function init(){if(!OKU(L("cloud"))||!L("token")){setup();return}$("st").textContent="載入中…";
-try{const r=await cloud("getRoutes");if(r.status!=="success")throw new Error(r.message);S.routes=r.routes;renderList();
-const h=await cloud("getHistory");if(h.status==="success")$("hl").innerHTML=h.history.map(x=>`<option value="${x.replace(/"/g,"&quot;")}">`).join("");$("st").textContent="☁ 已連線 "+r.routes.length+" 條"}
-catch(e){$("st").textContent="❌ "+e.message;toast("連線失敗："+e.message,5000)}}
+async function init(){if(!OKU(L("cloud"))||!L("token")){setup();return}$("st").textContent="載入中…";S.offline=false;
+try{const r=await cloud("getRoutes");if(r.status!=="success"){const er=new Error(r.message||"雲端錯誤");er.auth=r.code==="unauthorized";throw er}
+S.routes=r.routes;S.lastSync=Date.now();try{localStorage.rc=JSON.stringify(r.routes)}catch(e){}renderList();
+try{const hs=await cloud("getHistory");if(hs.status==="success")$("hl").innerHTML=hs.history.map(x=>`<option value="${esc(x)}">`).join("")}catch(e){}
+try{const c=await cloud("getLegCache");if(c.status==="success"){S.shared=c.pairs||{};persistShared();seedShared(r.routes)}}catch(e){}
+$("st").textContent="☁ 已連線 "+r.routes.length+" 條"}
+catch(e){let rc=null;try{rc=JSON.parse(L("rc"))}catch(x){}
+if(!e.auth&&Array.isArray(rc)&&rc.length){S.routes=rc;S.offline=true;try{S.shared=JSON.parse(L("sc")||"{}")}catch(x){}renderList();$("st").textContent="📴 離線模式（上次同步的 "+rc.length+" 條路線，無法儲存）";toast("目前無法連線，已改用離線資料",4000)}
+else{$("st").textContent="❌ "+e.message;toast("連線失敗："+e.message,5000)}}}
+function persistShared(){try{localStorage.sc=JSON.stringify(S.shared)}catch(e){}}
+function seedShared(routes){const ex={};routes.forEach(r=>{const p=(r.data.legs_cache&&r.data.legs_cache.pairs)||{};for(const k in p)if(!S.shared[k]&&!ex[k])ex[k]=p[k]});if(Object.keys(ex).length)pushShared(ex)}
+async function pushShared(pairs,ow){Object.assign(S.shared,pairs);persistShared();if(S.offline)return;const ks=Object.keys(pairs);for(let i=0;i<ks.length;i+=500){const c={};ks.slice(i,i+500).forEach(k=>c[k]=pairs[k]);try{await cloud("putLegCache",{pairs:c,overwrite:!!ow})}catch(e){}}}
+async function refresh(){if(!OKU(L("cloud"))||!L("token"))return;try{const r=await api(L("cloud"),{action:"getRoutes",token:L("token")});if(r.status!=="success")throw 0;const was=S.offline;S.routes=r.routes;S.offline=false;S.lastSync=Date.now();try{localStorage.rc=JSON.stringify(r.routes)}catch(e){}
+const keep=$("rs").value;renderList();if(keep)$("rs").value=keep;$("st").textContent="☁ 已連線 "+r.routes.length+" 條";
+if(was){try{const c=await cloud("getLegCache");if(c.status==="success"){S.shared=c.pairs||{};persistShared()}}catch(e){}}
+const cur=r.routes.find(x=>x.name===$("nm").value);if(cur&&S.base&&cur.updatedAt>S.base)toast("雲端有「"+cur.name+"」的新版本（可能是桌面版改的），按「載入」可更新",7000)}catch(e){}}
 function sorted(){const a=S.routes.slice(),m=$("sort").value;localStorage.sort=m;
 if(m==="time")a.sort((x,y)=>y.updatedAt-x.updatedAt);else if(m==="name")a.sort((x,y)=>x.name.localeCompare(y.name,"zh-Hant"));else if(m==="count")a.sort((x,y)=>y.data.locations.length-x.data.locations.length);else a.sort((x,y)=>x.order-y.order);return a}
 function renderList(){const cur=$("nm").value;$("rs").innerHTML=sorted().map(r=>`<option value="${r.name.replace(/"/g,"&quot;")}">${r.name}（${r.data.locations.length}）</option>`).join("");if(cur)$("rs").value=cur}
@@ -53,23 +67,31 @@ S.extra=(d.day_extra_times||[]).map(x=>({h:pad2(x.hour),m:pad2(x.minute)}));S.ba
 function collect(){return{version:1,locations:S.loc,display_locations:S.disp,rest_values:S.rest,start_hour:$("h").value,start_minute:$("m").value,avoid_tolls:$("toll").checked,avoid_highways:$("hwy").checked,time_adjust_percent:+$("adj").value||100,day_extra_times:exVals(),legs_cache:packCache()}}
 async function saveAs(name,base,force){const r=await cloud("saveRoute",{name,data:collect(),baseUpdatedAt:base,force:!!force});
 if(r.status==="conflict"){if(confirm("雲端有較新的版本（可能在另一台裝置改過）。要用目前內容覆蓋嗎？"))return saveAs(name,base,true);return false}
-if(r.status!=="success"){toast("儲存失敗："+r.message,5000);return false}S.base=r.updatedAt;await init();$("nm").value=name;$("rs").value=name;return true}
+if(r.status!=="success"){toast("儲存失敗："+r.message,5000);return false}S.base=r.updatedAt;$("nm").value=name;await refresh();$("rs").value=name;return true}
 async function saveR(){const n=$("nm").value.trim();if(!n)return toast("請輸入路線名稱");if(S.loc.length<2)return toast("至少需要 2 個地點");
 const ex=S.routes.find(x=>x.name===n);if(await saveAs(n,ex?S.base:0))toast("已儲存："+n)}
 async function dupR(){const o=$("nm").value.trim();if(!o)return toast("請先載入路線");let n=o+"_副本",i=1;while(S.routes.some(x=>x.name===n))n=o+"_副本"+i++;
 n=prompt("新路線名稱",n);if(!n)return;if(S.routes.some(x=>x.name===n.trim()))return toast("名稱已存在");if(await saveAs(n.trim(),0))toast("已複製為："+n)}
 function revR(){if(S.loc.length<2)return;if(!confirm("反向目前編輯中的路線？（按「儲存」才會寫入雲端）"))return;S.loc.reverse();S.disp.reverse();S.rest.reverse();S.legs=null;draw()}
 async function renR(){const o=$("rs").value;if(!o)return;const n=prompt("新名稱",o);if(!n||n===o)return;const r=await cloud("renameRoute",{oldName:o,newName:n.trim()});
-if(r.status!=="success")return toast(r.message,4000);await init();$("nm").value=n.trim();$("rs").value=n.trim()}
-async function delR(){const o=$("rs").value;if(!o||!confirm("刪除路線「"+o+"」？（會先放進雲端 trash 分頁，可復原）"))return;const r=await cloud("deleteRoute",{name:o});if(r.status!=="success")return toast(r.message);await init();toast("已刪除")}
-function draw(){$("cnt").textContent=S.loc.length;$("ll").innerHTML=S.loc.map((_,i)=>`<div class="loc ${i===S.sel?"sel":""}" onclick="S.sel=${i};draw()"><span class="n" ondblclick="ed(${i})">${String(i+1).padStart(2,"0")}. ${S.disp[i]}${i===0?" 〔出發〕":""}</span>`+
+if(r.status!=="success")return toast(r.message,4000);$("nm").value=n.trim();S.base=r.updatedAt;await refresh();$("rs").value=n.trim()}
+async function delR(){const o=$("rs").value;if(!o||!confirm("刪除路線「"+o+"」？（會先放進雲端 trash 分頁，可復原）"))return;const r=await cloud("deleteRoute",{name:o});if(r.status!=="success")return toast(r.message);await refresh();toast("已刪除")}
+function draw(){if(S.badSig!==S.loc.join("|"))S.bad=new Set();$("cnt").textContent=S.loc.length;$("ll").innerHTML=S.loc.map((_,i)=>`<div class="loc ${i===S.sel?"sel":""} ${S.bad.has(i)?"bad":""}" data-i="${i}" onclick="S.sel=${i};draw()"><span class="h" data-i="${i}" title="拖曳排序">⠿</span><span class="n" ondblclick="ed(${i})">${String(i+1).padStart(2,"0")}. ${S.disp[i]}${i===0?" 〔出發〕":""}</span><button class="k" style="padding:0 6px" onclick="event.stopPropagation();ed(${i})">✎</button>`+
 (i===S.loc.length-1?"":[["不休",0],["短休10",1],["長休20",2],["過夜",3]].map(([t,v])=>`<label><input type="radio" name="r${i}" ${S.rest[i]===v?"checked":""} onclick="event.stopPropagation();S.rest[${i}]=${v};reGen()">${t}</label>`).join(""))+"</div>").join("");drawEx();caInfo()}
 function ed(i){const n=prompt("修改顯示名稱",S.disp[i]);if(n){S.disp[i]=n.trim();draw()}}
 function tgDN(){const e=$("ex"),on=e.style.display==="none";e.style.display=on?"flex":"none";$("dnb").textContent=(on?"▼":"▶")+" D+N設定"}
 function reGen(){if(S.legs&&S.legs.length===S.loc.length-1)render()}
 function drawEx(){while(S.extra.length<4)S.extra.push({h:"06",m:"00"});$("ex").innerHTML=[0,1,2,3].map(i=>`D+${i+1} <input value="${S.extra[i].h}" oninput="S.extra[${i}].h=this.value;reGen()" style="width:48px">:<input value="${S.extra[i].m}" oninput="S.extra[${i}].m=this.value;reGen()" style="width:48px">`).join(" ")}
 function exVals(){return S.extra.map(e=>({hour:e.h,minute:e.m}))}
-function addL(){const v=$("add").value.trim();if(!v)return;const at=S.sel>=0?S.sel+1:S.loc.length;S.loc.splice(at,0,v);S.disp.splice(at,0,v);S.rest.splice(at,0,1);S.sel=at;$("add").value="";S.legs=null;draw();cloud("saveHistory",{items:[v]})}
+const COORD=/^-?\d+(\.\d+)?\s*,\s*-?\d+(\.\d+)?$/;
+function placeAdd(name,lat,lng){const v=(lat!=null&&lng!=null)?`${lat},${lng}`:name,at=S.sel>=0?S.sel+1:S.loc.length;S.loc.splice(at,0,v);S.disp.splice(at,0,name);S.rest.splice(at,0,1);S.sel=at;$("add").value="";$("cand").innerHTML="";S.legs=null;
+if(lat!=null){try{const pc=JSON.parse(L("pc")||"{}");pc[name]={lat:lat,lng:lng};localStorage.pc=JSON.stringify(pc)}catch(e){}}draw();if(!S.offline)cloud("saveHistory",{items:[name]})}
+async function addL(){const v=$("add").value.trim();if(!v)return;$("cand").innerHTML="";let pc={};try{pc=JSON.parse(L("pc")||"{}")}catch(e){}
+if(pc[v])return placeAdd(v,pc[v].lat,pc[v].lng);if(COORD.test(v)||!OKU(L("calc")))return placeAdd(v);
+toast("查詢地點中…",20000);try{const r=await api(L("calc"),{action:"search_place",query:v});hideToast();if(r.status==="success"&&r.data&&r.data.length)showCand(v,r.data);else rawAsk(v,"Google 查無此地點")}catch(e){hideToast();rawAsk(v,"查詢失敗："+e.message)}}
+function rawAsk(v,why){if(confirm(why+"\n\n是否仍要用「"+v+"」這個原始文字加入清單？\n（未經驗證的地點，之後規劃路線時可能仍會查詢失敗）"))placeAdd(v)}
+function showCand(q,list){window._cand=list;window._q=q;$("cand").innerHTML="<div style='margin:4px 0'>請選擇正確的地點：</div>"+list.map((c,i)=>`<div><button class="b" style="text-align:left;width:100%" onclick="pickCand(${i})">${esc(c.name)}<br><small>${esc(c.address||"")}</small></button></div>`).join("")+`<div><button class="k" onclick="placeAdd(window._q)">仍用原文字「${esc(q)}」加入</button><button class="r" onclick="$('cand').innerHTML=''">取消</button></div>`}
+function pickCand(i){const c=window._cand[i];placeAdd(c.name,c.lat,c.lng)}
 function mv(d){const i=S.sel,j=i+d;if(i<0||j<0||j>=S.loc.length)return;for(const a of [S.loc,S.disp,S.rest])[a[i],a[j]]=[a[j],a[i]];S.sel=j;S.legs=null;draw()}
 function rmL(){if(S.sel<0)return;for(const a of [S.loc,S.disp,S.rest])a.splice(S.sel,1);S.sel=-1;S.legs=null;draw()}
 function clr(){if(confirm("清空所有地點？")){S.loc=[];S.disp=[];S.rest=[];S.sel=-1;S.legs=null;draw()}}
@@ -85,22 +107,49 @@ const fT=m=>{m=Math.floor(m);const d=Math.floor(m/1440),x=m%1440;return String(M
 const fD=m=>{const h=Math.floor(m/60),x=Math.floor(m%60);return h>0?`${h} 小時 ${x} 分`:`${x} 分`};
 function mapUrl(){const p=S.disp.map(l=>l.replace(/\//g,"／").replace(/#/g,"%23").replace(/\?/g,"%3F")).join("/");const f=($("toll").checked?"t":"")+($("hwy").checked?"h":"");return`https://www.google.com.tw/maps/dir/${p}/data=!4m2!4m1!3e0`+(f?`&dirflg=${f}`:"")}
 function realUrl(){const p=S.loc.map(l=>encodeURIComponent(l)).join("/");const f=($("toll").checked?"t":"")+($("hwy").checked?"h":"");return`https://www.google.com.tw/maps/dir/${p}/data=!4m2!4m1!3e0`+(f?`&dirflg=${f}`:"")}
+const cget=k=>S.cache[k]||S.shared[k];
 const lk=i=>S.loc[i]+"→"+S.loc[i+1]+"|"+($("toll").checked?1:0)+($("hwy").checked?1:0);
-function packCache(){const p={};for(let i=0;i<S.loc.length-1;i++){const c=S.cache[lk(i)];if(c)p[lk(i)]=c}return{at:S.cacheAt||0,pairs:p}}
-function fromCache(){const n=S.loc.length-1;if(n<1)return false;const a=[];for(let i=0;i<n;i++){const c=S.cache[lk(i)];if(!c)return false;a.push({distance:{value:c[0]},duration:{value:c[1]}})}S.legs=a;return true}
+function packCache(){const p={};for(let i=0;i<S.loc.length-1;i++){const c=cget(lk(i));if(c)p[lk(i)]=c}return{at:S.cacheAt||0,pairs:p}}
+function fromCache(){const n=S.loc.length-1;if(n<1)return false;const a=[];for(let i=0;i<n;i++){const c=cget(lk(i));if(!c)return false;a.push({distance:{value:c[0]},duration:{value:c[1]}})}S.legs=a;return true}
 function showLink(){if(S.loc.length<2)return;$("lk").href=realUrl();$("lk").textContent=" 🔗 開啟 Google Maps 導航";$("lu").value=mapUrl()}
-function caInfo(){const n=S.loc.length-1;if(n<1){$("ca").textContent="";return}let m=0;for(let i=0;i<n;i++)if(!S.cache[lk(i)])m++;
+function caInfo(){const n=S.loc.length-1;if(n<1){$("ca").textContent="";return}let m=0;for(let i=0;i<n;i++)if(!cget(lk(i)))m++;
 $("ca").textContent=m===0?" ✓ 路線資料已快取"+(S.cacheAt?"（計算於 "+new Date(S.cacheAt).toLocaleDateString("zh-TW")+"）":""):` 需向 Google 查詢 ${m} 段`}
-async function gen(force){if(S.loc.length<2)return toast("至少需要 2 個地點");showLink();const n=S.loc.length-1,need=[];
-for(let i=0;i<n;i++)if(force===true||!S.cache[lk(i)])need.push(i);
-if(!need.length){fromCache();render();caInfo();return toast("已使用快取，未呼叫 Google")}
+async function diagnose(s,e,fresh){const fail=new Set(),calc=L("calc");for(let i=s;i<=e;i++){if(cget(lk(i)))continue;
+try{const r=await api(calc,{locations:[S.loc[i],S.loc[i+1]],avoidTolls:$("toll").checked,avoidHighways:$("hwy").checked});
+if(r.status==="success"&&r.data&&r.data.length===1){const v=[r.data[0].distance.value,r.data[0].duration.value];S.cache[lk(i)]=v;fresh[lk(i)]=v}else fail.add(i)}catch(x){fail.add(i)}}
+const bad=new Set();fail.forEach(i=>{if(fail.has(i-1))bad.add(i)});/* 相鄰兩對都失敗 → 共用的那個點是壞點 */
+fail.forEach(i=>{if(!bad.has(i)&&!bad.has(i+1))bad.add(i+1)});/* 單獨失敗的一對 → 標後面那個點（與桌面版相同） */
+return bad}
+function markBad(set){S.bad=set;S.badSig=S.loc.join("|");draw();const names=[...set].sort((a,b)=>a-b).map(i=>S.disp[i]||S.loc[i]);
+toast(set.size?`找到 ${set.size} 個問題地點（紅底）：${names.join("、")}，請修改後重試`:"整段查詢失敗，但逐對測試都正常，請稍後重試",9000)}
+async function gen(force){if(S.loc.length<2)return toast("至少需要 2 個地點");showLink();S.bad=new Set();const n=S.loc.length-1,need=[],fresh={};
+for(let i=0;i<n;i++)if(force===true||!cget(lk(i)))need.push(i);
+if(!need.length){fromCache();render();caInfo();draw();return toast("已使用快取，未呼叫 Google")}
 const calc=L("calc");if(!OKU(calc))return toast("請先到「⚙ 設定」填入路線計算網址",5000);toast("向 Google 查詢 "+need.length+" 段…",60000);
 try{const runs=[];need.forEach(i=>{const r=runs[runs.length-1];if(r&&r.e===i-1)r.e=i;else runs.push({s:i,e:i})});
-for(const r of runs)for(let s=r.s;s<=r.e;s+=7){const e=Math.min(s+6,r.e),seg=S.loc.slice(s,e+2);
-const res=await api(calc,{locations:seg,avoidTolls:$("toll").checked,avoidHighways:$("hwy").checked});
-if(res.status!=="success")throw new Error(`第 ${s+1}～${e+2} 個地點查詢失敗：${res.message||"請檢查地點名稱"}`);
-if(!res.data||res.data.length!==e-s+1)throw new Error("回傳段數不符");res.data.forEach((lg,j)=>{S.cache[lk(s+j)]=[lg.distance.value,lg.duration.value]})}
-S.cacheAt=Date.now();fromCache();render();caInfo();toast("✓ 已更新（按「儲存」可保存查詢結果，下次載入免查詢）",6000)}catch(e){toast("失敗："+e.message,6000)}}
+for(const r of runs)for(let s=r.s;s<=r.e;s+=7){const e=Math.min(s+6,r.e),seg=S.loc.slice(s,e+2);let res;
+try{res=await api(calc,{locations:seg,avoidTolls:$("toll").checked,avoidHighways:$("hwy").checked})}catch(x){throw new Error("網路連線失敗，請檢查網路")}
+if(res.status!=="success"){toast("查詢失敗，逐對排查問題地點中…",60000);throw{bad:await diagnose(s,e,fresh)}}
+if(!res.data||res.data.length!==e-s+1)throw new Error("回傳段數不符");
+res.data.forEach((lg,j)=>{const k=lk(s+j),v=[lg.distance.value,lg.duration.value];S.cache[k]=v;fresh[k]=v})}
+S.cacheAt=Date.now();fromCache();render();caInfo();draw();pushShared(fresh,force===true);toast("✓ 已更新（按「儲存」可保存查詢結果，下次載入免查詢）",6000)}
+catch(e){if(Object.keys(fresh).length)pushShared(fresh,false);if(e&&e.bad)markBad(e.bad);else toast("失敗："+(e.message||e),6000)}}
+let BF=null;
+async function batchFill(){if(BF){BF.stop=true;toast("將在目前這次查詢完成後停止…");return}
+if(S.offline||!OKU(L("calc")))return toast("需要連線，且已在「⚙ 設定」填入路線計算網址",5000);
+const plan=[],seen=new Set(Object.keys(S.shared));
+S.routes.forEach(r=>{const d=r.data,f=(d.avoid_tolls?"1":"0")+(d.avoid_highways?"1":"0"),loc=d.locations||[];let run=null;
+for(let i=0;i<loc.length-1;i++){const k=loc[i]+"→"+loc[i+1]+"|"+f;if(seen.has(k)){if(run){plan.push(run);run=null}}else{seen.add(k);if(!run)run={s:i,e:i,f:f,loc:loc};else run.e=i}}if(run)plan.push(run)});
+if(!plan.length)return toast("所有路線都已有快取，不需要補查",4000);
+const calls=plan.reduce((a,r)=>a+Math.ceil((r.e-r.s+1)/7),0),legs=plan.reduce((a,r)=>a+r.e-r.s+1,0);
+if(!confirm(`共有 ${legs} 段路線尚無快取，預計向 Google 查詢約 ${calls} 次。\n會慢慢查，中途再按一次按鈕可停止；若達到每日上限會自動停止，隔天再按一次即可繼續。\n要開始嗎？`))return;
+BF={stop:false};$("bf").textContent="⏹ 停止補查";let done=0,got=0,streak=0,why="";
+try{for(const r of plan){for(let s=r.s;s<=r.e&&!BF.stop;s+=7){const e=Math.min(s+6,r.e);
+try{const res=await api(L("calc"),{locations:r.loc.slice(s,e+2),avoidTolls:r.f[0]==="1",avoidHighways:r.f[1]==="1"});
+if(res.status==="success"&&res.data&&res.data.length===e-s+1){const p={};res.data.forEach((lg,j)=>{p[r.loc[s+j]+"→"+r.loc[s+j+1]+"|"+r.f]=[lg.distance.value,lg.duration.value]});await pushShared(p);got+=res.data.length;streak=0}else streak++}catch(x){streak++}
+done++;$("ca").textContent=` ⚡ 補查中 ${done}/${calls}（已取得 ${got} 段）`;
+if(streak>=3){BF.stop=true;why="（連續失敗，可能已達每日上限或網路中斷）"}await new Promise(z=>setTimeout(z,700))}if(BF.stop)break}}
+finally{const stopped=BF.stop;BF=null;$("bf").textContent="⚡ 補齊所有路線快取";caInfo();toast((stopped?"已停止":"完成")+`：本次取得 ${got} 段`+why,8000)}}
 function render(){const loc=S.disp,legs=S.legs,name=$("nm").value,adj=(+$("adj").value||100)/100,st=(+$("h").value||0)*60+(+$("m").value||0),ex=exVals();
 const dayStart=n=>{if(!n)return st;const e=ex[Math.min(n-1,ex.length-1)]||{};return(+e.hour||6)*60+(+e.minute||0)};
 let cd=0,ct=0,cur=st,tr=0,day=0;const sg=[];
@@ -121,5 +170,14 @@ $("o2").value=[`【${name}】｜機車巡航之旅`,"","📅 日期： [請發�
 "👥 領隊與壓隊：","· 領隊： [發起人暱稱]","· 壓隊： [徵求自願者]","","⚙️ 行前必讀與安全公約：","1.  安全自負： 請自行確認車況，為自身安全負完全責任。","2.  裝備要求： 全罩安全帽、手套、防摔衣褲、保暖衣物。","3.  團隊紀律： 遵從領隊指揮，山道不越線，保持安全距離。","4.  體力管理： 山路騎乘耗體力，請備足飲水與補給。","5.  天氣因應： 若遇雨或濃霧，活動將取消或調整。","","✍️ 報名與確認：","請在此留言「+1」，並私訊發起人：","· 暱稱：","· 車型/顏色：","· 手機號碼：","","---","","用輪胎劃過山與海，收集最美的風景。","","「騎帥不騎快，我們路上見！」 🏍️💨","","---","發起人： [您的暱稱]","發佈日期：[發佈當天日期]"].join("\n")}
 function cpLink(){const v=$("lu").value||(S.loc.length>1?mapUrl():"");if(!v)return toast("請先生成連結");if(!$("lu").value)$("lu").value=v;cp("lu")}
 function cp(id){const e=$(id);e.select();navigator.clipboard?navigator.clipboard.writeText(e.value).then(()=>toast("已複製")):document.execCommand("copy")}
+let drag=null;const LL=$("ll");
+LL.addEventListener("pointerdown",e=>{const hd=e.target.closest(".h");if(!hd)return;e.preventDefault();drag={i:+hd.dataset.i,over:+hd.dataset.i};try{hd.setPointerCapture(e.pointerId)}catch(x){}const r=hd.closest(".loc");if(r)r.classList.add("dragging")});
+LL.addEventListener("pointermove",e=>{if(!drag)return;if(e.clientY<90)window.scrollBy(0,-14);else if(e.clientY>innerHeight-90)window.scrollBy(0,14);
+const el=document.elementFromPoint(e.clientX,e.clientY),row=el&&el.closest&&el.closest(".loc");if(row&&LL.contains(row)){drag.over=+row.dataset.i;[...LL.children].forEach(c=>c.classList.toggle("dov",+c.dataset.i===drag.over))}});
+const endDrag=ok=>{if(!drag)return;const d=drag;drag=null;if(ok&&d.i!==d.over){for(const a of [S.loc,S.disp,S.rest]){const x=a.splice(d.i,1)[0];a.splice(d.over,0,x)}S.sel=d.over;S.legs=null}draw()};
+LL.addEventListener("pointerup",()=>endDrag(true));LL.addEventListener("pointercancel",()=>endDrag(false));
+document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible"&&Date.now()-S.lastSync>30000)refresh()});
+window.addEventListener("online",()=>refresh());setInterval(()=>{if(document.visibilityState==="visible")refresh()},300000);
+if("serviceWorker" in navigator&&location.protocol.indexOf("http")===0)navigator.serviceWorker.register("sw.js").catch(()=>{});
 applyHash();$("sort").value=L("sort")||"desk";init();
 </script></body></html>
