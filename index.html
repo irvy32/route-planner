@@ -12,7 +12,7 @@ textarea{width:100%;font-size:13px}.g{background:#2e7d32}.b{background:var(--p)}
 @media(min-width:900px){#out{display:grid;grid-template-columns:1fr 1fr;gap:10px}}
 .loc.bad{background:rgba(198,40,40,.28)}.h{cursor:grab;touch-action:none;user-select:none;padding:0 8px;font-size:20px;color:#888}.loc.dov{outline:2px dashed var(--p)}.loc.dragging{opacity:.5}#cand button{margin:2px 0}.loc:nth-child(even){background:var(--alt)}.loc.sel{background:rgba(25,118,210,.22)!important}.loc.bad{background:rgba(198,40,40,.28)!important}
 #add,#url,#nm{background:var(--inp);border:2px solid var(--inpb)}#add:focus,#url:focus,#nm:focus{outline:2px solid var(--p);border-color:var(--p)}
-.rg{display:flex;gap:10px;flex-wrap:wrap}
+.rg{display:flex;gap:10px;flex-wrap:wrap;align-items:center}.cu{display:none;align-items:center;gap:4px;font-size:14px}.cu.on{display:inline-flex}.cu input{width:66px;padding:3px 6px;background:var(--inp);border:2px solid var(--inpb)}
 @media(min-width:701px){.loc{display:grid;grid-template-columns:30px minmax(0,400px) 40px auto;justify-content:start;column-gap:12px;align-items:center}.loc .n{flex:none}}
 .pk{flex:1;min-width:200px;text-align:left;background:var(--c);color:var(--t);border:2px solid var(--p);font-size:16px;padding:10px 12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin:2px}
 #pm{display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:50}
@@ -21,23 +21,28 @@ textarea{width:100%;font-size:13px}.g{background:#2e7d32}.b{background:var(--p)}
 .pi b{display:block;font-size:17px;line-height:1.35;word-break:break-all}.pi small{opacity:.7}
 .chip{background:var(--alt);color:var(--t);border:1px solid var(--b);padding:6px 12px;border-radius:16px;margin:0}.chip.on{background:var(--p);color:#fff}
 @media(max-width:700px){#pp{top:0;left:0;transform:none;width:100%;max-height:92vh;border-radius:0 0 14px 14px}.pi b{font-size:18px}.pi{padding:14px}}
-@media(max-width:700px){.loc{padding:8px 6px}.loc .n{flex:1 1 calc(100% - 110px);font-weight:600}.rg{flex:1 1 100%;justify-content:space-between;padding-left:36px;font-size:14px}}
+@media(max-width:700px){.loc{padding:8px 6px}.loc .n{flex:1 1 calc(100% - 110px);font-weight:600}.rg{flex:1 1 100%;justify-content:flex-start;gap:4px 9px;padding-left:28px;font-size:13px}.rg label{display:inline-flex;align-items:center;gap:1px}.rg input[type=radio]{margin:0 2px 0 0}}
+.d{font-size:13px;white-space:nowrap;color:var(--t)}.d.long{color:#d32f2f;font-weight:600}#sum{font-size:13px;margin:2px 0 6px;opacity:.85}
+@media(min-width:701px){.loc{grid-template-columns:30px minmax(0,400px) 40px 130px auto}}
+@media(max-width:700px){.loc .n{flex:1 1 0;min-width:100px}.loc .d{order:2;flex:0 0 auto;font-size:12px}.loc .k{order:3}.loc .rg{order:4}}
+#tm{display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:60}#tp{position:absolute;left:50%;top:8vh;transform:translateX(-50%);width:min(560px,96vw);max-height:84vh;background:var(--c);border:1px solid var(--b);border-radius:12px;display:flex;flex-direction:column;overflow:hidden}
+#tl{overflow:auto;flex:1}.ti{padding:12px 14px;border-bottom:1px solid var(--b);cursor:pointer}.ti:nth-child(even){background:var(--alt)}.ti small{opacity:.7;display:block}
 </style></head><body>
 <div class="card"><div class="row"><b>🏍️ 路線規劃（雲端版）</b><button class="k" onclick="setup()">⚙ 設定</button><button class="k" onclick="phoneLink()">📱 複製手機設定連結</button><span id="st"></span></div></div>
 <div class="card"><h3>路線</h3><div class="row"><select id="sort" style="display:none" onchange="renderList()"><option value="desk">桌面版順序</option><option value="time">最近修改</option><option value="name">名稱 A→Z</option><option value="count">地點數</option></select>
 <select id="rs" style="display:none"></select><button class="pk" id="pk" onclick="openPick()">選擇路線 ▾</button></div><div class="row">
-<button class="b" onclick="loadR()">載入</button><button class="g" onclick="newR()">＋新增路線</button><button class="g" onclick="saveR()">儲存</button><button class="t" onclick="dupR()">複製</button><button class="v" onclick="revR()">反向</button><button class="o" onclick="renR()">改名</button><button class="r" onclick="delR()">刪除</button><button class="k" onclick="init()">↻ 重新整理</button><button class="o" id="bf" onclick="batchFill()">⚡ 補齊所有路線快取</button></div>
+<button class="b" onclick="loadR()">載入</button><button class="g" onclick="newR()">＋新增路線</button><button class="g" onclick="saveR()">儲存</button><button class="t" onclick="dupR()">複製</button><button class="v" onclick="revR()">反向</button><button class="o" onclick="renR()">改名</button><button class="r" onclick="delR()">刪除</button><button class="k" onclick="openTrash()">🗑 復原已刪除</button><button class="k" onclick="init()">↻ 重新整理</button><button class="o" id="bf" onclick="batchFill()">⚡ 補齊所有路線快取</button></div>
 <div class="row">名稱：<input id="nm" style="flex:1;min-width:160px"></div></div>
 <div class="card"><h3>行程設定</h3><div class="row">D Day 出發 <input id="h" size="2" maxlength="2" style="width:48px" oninput="reGen()">:<input id="m" size="2" maxlength="2" style="width:48px" oninput="reGen()"> 時間調整 <input id="adj" type="number" style="width:70px" value="100" oninput="reGen()">%</div>
 <div class="row"><label><input type="checkbox" id="toll" onchange="S.legs=null;caInfo()"> 避開收費</label><label><input type="checkbox" id="hwy" onchange="S.legs=null;caInfo()"> 避開高速</label></div><div class="row"><button class="k" id="dnb" onclick="tgDN()">▶ D+N設定</button></div><div id="ex" class="row" style="display:none"></div>
 <textarea id="url" rows="2" placeholder="貼上 Google Maps 路線網址"></textarea><div class="row"><button class="b" onclick="parseU()">拆解網址</button></div></div>
-<div class="card"><h3>地點（<span id="cnt">0</span>）</h3><div class="row"><input id="add" list="hl" style="flex:1;min-width:160px" placeholder="輸入地點名稱"><datalist id="hl"></datalist><button class="g" onclick="addL()">＋</button></div><div id="cand"></div>
+<div class="card"><h3>地點（<span id="cnt">0</span>）</h3><div id="sum"></div><div class="row"><input id="sq" placeholder="🔍 搜尋清單中的地點" style="flex:1;min-width:160px" oninput="applyQ()"><button class="k" onclick="$('sq').value='';applyQ()">清除</button></div><div class="row"><input id="add" list="hl" style="flex:1;min-width:160px" placeholder="輸入地點名稱"><datalist id="hl"></datalist><button class="g" onclick="addL()">＋</button></div><div id="cand"></div>
 <div id="ll"></div><div class="row"><button class="k" onclick="mv(-1)">↑上移</button><button class="k" onclick="mv(1)">↓下移</button><button class="r" onclick="rmL()">刪除</button><button class="o" onclick="clr()">清空</button></div></div>
 <div class="card"><div class="row"><button class="g" onclick="gen()">生成連結＋輸出</button><button class="b" onclick="cpLink()">複製連結</button><button class="k" onclick="gen(true)">重新向 Google 查詢</button><a id="lk" target="_blank"></a><span id="ca" style="font-size:13px"></span></div><textarea id="lu" rows="3" readonly style="background:#fff9c4;color:#222" placeholder="生成後這裡會顯示簡短地名版連結"></textarea></div>
 <div id="out"><div class="card"><h3>格式一：詳細路線</h3><button class="b" onclick="cp('o1')">複製</button><textarea id="o1" rows="16"></textarea></div>
 <div class="card"><h3>格式二：活動公告</h3><button class="b" onclick="cp('o2')">複製</button><textarea id="o2" rows="16"></textarea></div></div><div id="pm" onclick="if(event.target===this)closePick()"><div id="pp"><div class="row" style="padding:10px"><input id="pq" placeholder="搜尋路線名稱" style="flex:1;font-size:16px" oninput="renderPick()"><button class="r" onclick="closePick()">關閉</button></div>
 <div class="row" style="padding:0 10px 8px"><button class="chip" data-s="name" onclick="setSort('name')">名稱 A→Z</button><button class="chip" data-s="time" onclick="setSort('time')">最近修改</button><button class="chip" data-s="desk" onclick="setSort('desk')">桌面版順序</button><button class="chip" data-s="count" onclick="setSort('count')">地點數</button></div>
-<div id="pl"></div></div></div><div id="msg"></div>
+<div id="pl"></div></div></div><div id="tm" onclick="if(event.target===this)closeTrash()"><div id="tp"><div class="row" style="padding:10px"><b style="flex:1">🗑 已刪除的路線（點一下復原）</b><button class="r" onclick="closeTrash()">關閉</button></div><div id="tl"></div></div></div><div id="msg"></div>
 <script>
 const ATTR={"大安休息站": "西濱公路休息站，可補給、欣賞海景", "古坑綠色隧道": "芒果樹形成的綠色隧道，適合拍照散步", "雲嶺之丘": "雲林最高點，360度環景，可觀雲海", "五元二角": "竹林秘境，日式風格的涼亭群", "1314觀景台": "海拔1314公尺，愛情主題觀景台", "太平雲梯": "全台最長景觀吊橋，俯瞰嘉南平原", "北港朝天宮": "國定古蹟，媽祖信仰中心"},ROAD={"山路": ["山", "嶺", "峰", "谷", "崖", "坡", "森林", "觀景台", "雲梯", "古道", "部落"], "快速道路": ["快速", "西濱", "台61", "休息站"], "省道/縣道": []},DEF_CALC="";
 const $=i=>document.getElementById(i),L=k=>localStorage.getItem(k)||"";
@@ -91,7 +96,7 @@ function loadR(){const n=$("rs").value,r=S.routes.find(x=>x.name===n);if(!r)retu
 S.loc=(d.locations||[]).slice();S.disp=(d.display_locations||S.loc).slice();S.rest=S.loc.map((_,i)=>d.rest_values&&d.rest_values[i]!=null?d.rest_values[i]:1);
 $("nm").value=n;$("h").value=pad2(d.start_hour||"6");$("m").value=pad2(d.start_minute||"0");$("adj").value=d.time_adjust_percent||100;$("toll").checked=!!d.avoid_tolls;$("hwy").checked=!!d.avoid_highways;
 S.extra=(d.day_extra_times||[]).map(x=>({h:pad2(x.hour),m:pad2(x.minute)}));S.base=r.updatedAt;S.sel=-1;S.legs=null;S.cache=(d.legs_cache&&d.legs_cache.pairs)||{};S.cacheAt=(d.legs_cache&&d.legs_cache.at)||0;draw();pickLbl();showLink();if(fromCache())render();else{$("o1").value="";$("o2").value=""}caInfo();toast("已載入："+n+(S.legs?"（使用已存的路線資料，未呼叫 Google）":""),4000)}
-function collect(){return{version:1,locations:S.loc,display_locations:S.disp,rest_values:S.rest,start_hour:$("h").value,start_minute:$("m").value,avoid_tolls:$("toll").checked,avoid_highways:$("hwy").checked,time_adjust_percent:+$("adj").value||100,day_extra_times:exVals(),legs_cache:packCache()}}
+function collect(){return{version:1,locations:S.loc,display_locations:S.disp,rest_values:S.rest.map((v,i)=>v!=null?v:(i===0||i===S.rest.length-1?1:effRest(i))),start_hour:$("h").value,start_minute:$("m").value,avoid_tolls:$("toll").checked,avoid_highways:$("hwy").checked,time_adjust_percent:+$("adj").value||100,day_extra_times:exVals(),legs_cache:packCache()}}
 async function saveAs(name,base,force){const r=await cloud("saveRoute",{name,data:collect(),baseUpdatedAt:base,force:!!force});
 if(r.status==="conflict"){if(confirm("雲端有較新的版本（可能在另一台裝置改過）。要用目前內容覆蓋嗎？"))return saveAs(name,base,true);return false}
 if(r.status!=="success"){toast("儲存失敗："+r.message,5000);return false}S.base=r.updatedAt;$("nm").value=name;await refresh();$("rs").value=name;return true}
@@ -103,15 +108,35 @@ function revR(){if(S.loc.length<2)return;if(!confirm("反向目前編輯中的�
 async function renR(){const o=$("rs").value;if(!o)return;const n=prompt("新名稱",o);if(!n||n===o)return;const r=await cloud("renameRoute",{oldName:o,newName:n.trim()});
 if(r.status!=="success")return toast(r.message,4000);$("nm").value=n.trim();S.base=r.updatedAt;await refresh();$("rs").value=n.trim()}
 async function delR(){const o=$("rs").value;if(!o||!confirm("刪除路線「"+o+"」？（會先放進雲端 trash 分頁，可復原）"))return;const r=await cloud("deleteRoute",{name:o});if(r.status!=="success")return toast(r.message);await refresh();toast("已刪除")}
-function draw(){if(S.badSig!==S.loc.join("|"))S.bad=new Set();$("cnt").textContent=S.loc.length;$("ll").innerHTML=S.loc.map((_,i)=>`<div class="loc ${i===S.sel?"sel":""} ${S.bad.has(i)?"bad":""}" data-i="${i}" onclick="S.sel=${i};draw()"><span class="h" data-i="${i}" title="拖曳排序">⠿</span><span class="n" ondblclick="ed(${i})">${String(i+1).padStart(2,"0")}. ${S.disp[i]}${i===0?" 〔出發〕":""}</span><button class="k" style="padding:0 6px" onclick="event.stopPropagation();ed(${i})">✎</button>`+
-(i===S.loc.length-1?"":'<span class="rg">'+[["不休",0],["短休10",1],["長休20",2],["過夜",3]].map(([t,v])=>`<label><input type="radio" name="r${i}" ${S.rest[i]===v?"checked":""} onclick="event.stopPropagation();S.rest[${i}]=${v};reGen()">${t}</label>`).join("")+"</span>")+"</div>").join("");drawEx();caInfo()}
+function closeTrash(){$("tm").style.display="none"}
+async function openTrash(){const r=await cloud("getTrash");if(r.status!=="success")return toast(r.message||"讀取失敗（請確認 Code.gs 已更新並建立新版本）",6000);
+window._tr=r.items;$("tl").innerHTML=r.items.length?r.items.map((x,i)=>`<div class="ti" onclick="restoreT(${i})"><b>${esc(x.name)}</b><small>${x.count} 個地點　刪除於 ${new Date(x.deletedAt).toLocaleString("zh-TW",{hour12:false})}</small></div>`).join(""):'<div class="ti">垃圾桶是空的</div>';$("tm").style.display="block"}
+async function restoreT(i){const x=window._tr[i];if(!x||!confirm("復原路線「"+x.name+"」？"))return;const r=await cloud("restoreRoute",{name:x.name,deletedAt:x.deletedAt});if(r.status!=="success")return toast(r.message||"復原失敗",5000);closeTrash();await refresh();toast("已復原："+r.name,5000)}
+function draw(){if(S.badSig!==S.loc.join("|"))S.bad=new Set();$("cnt").textContent=S.loc.length;$("ll").innerHTML=S.loc.map((_,i)=>`<div class="loc ${i===S.sel?"sel":""} ${S.bad.has(i)?"bad":""}" data-i="${i}" onclick="S.sel=${i};draw()"><span class="h" data-i="${i}" title="拖曳排序">⠿</span><span class="n" ondblclick="ed(${i})">${String(i+1).padStart(2,"0")}. ${S.disp[i]}${i===0?" 〔出發〕":""}</span><button class="k" style="padding:0 6px" onclick="event.stopPropagation();ed(${i})">✎</button><span class="d" id="d${i}"></span>`+
+((i===0||i===S.loc.length-1)?"":restHtml(i))+"</div>").join("");drawEx();caInfo();fillD();applyQ()}
+function fillD(){const ok=S.legs&&S.sg&&S.sg.length===S.loc.length-1&&S.legs.length===S.sg.length;
+S.loc.forEach((_,i)=>{const e=$("d"+i);if(!e)return;if(i===0){e.textContent="出發點";e.className="d";return}
+if(!ok){e.textContent="";e.className="d";return}const g=S.sg[i-1],m=Math.round(g.du);e.textContent=`${String(g.km).padStart(3," ")} km / ${m} 分`;e.className="d"+(m>120?" long":"")});
+const n=S.loc.length;if(!n){$("sum").textContent="";return}let t="共 "+n+" 個地點";
+if(ok){const km=S.sg.reduce((a,g)=>a+g.km,0),mm=S.sg.reduce((a,g)=>a+g.du,0),ov=S.sg.filter(g=>g.ov).length;t+=`　🛣️ ${km} km　⏱️ ${Math.floor(mm/60)}h${Math.floor(mm%60)}m`+(ov?`　📅 過夜${ov}次`:"")}$("sum").textContent=t}
+function applyQ(){const q=($("sq").value||"").trim().toLowerCase();[...$("ll").children].forEach(r=>{const i=+r.dataset.i;r.style.display=(!q||(S.disp[i]||"").toLowerCase().includes(q))?"":"none"})}
+function restHtml(i){const rv=effRest(i),cu=rv>=100;
+return '<span class="rg">'+[["不休",0],["短休10",1],["長休20",2],["過夜",3]].map(([t,v])=>`<label onclick="event.stopPropagation()"><input type="radio" name="r${i}" ${rv===v?"checked":""} onclick="event.stopPropagation();setRest(${i},${v})">${t}</label>`).join("")+
+`<label onclick="event.stopPropagation()"><input type="radio" name="r${i}" ${cu?"checked":""} onclick="event.stopPropagation();setRest(${i},'c')">自訂</label><span class="cu ${cu?"on":""}" id="cu${i}" onclick="event.stopPropagation()"><input type="number" id="cm${i}" min="1" max="900" inputmode="numeric" value="${cu?rv-100:30}" oninput="cmIn(${i},this)" onchange="cmDone(${i},this)">分</span></span>`}
+const clampM=v=>{const n=Math.floor(+v);return n>=1?Math.min(900,n):0};
+function cmIn(i,el){if(el.value===""||!(Math.floor(+el.value)>=1))return;S.rest[i]=100+clampM(el.value);reGen()}
+function cmDone(i,el){const m=clampM(el.value)||(S.rest[i]>=100?S.rest[i]-100:30);el.value=m;S.rest[i]=100+m;reGen()}
+function setRest(i,v){const cu=$("cu"+i);if(v==="c"){const el=$("cm"+i),m=clampM(el.value)||30;el.value=m;S.rest[i]=100+m;cu.classList.add("on");el.focus();el.select()}else{S.rest[i]=v;cu.classList.remove("on")}reGen()}
+const LONGKW=["早餐","午餐","晚餐","包子","冰店","麻糬","蚵嗲","觀景台","雲梯","公園","古道","遺址","部落","遊客中心","風景區","海濱","火車站","朝天宮","1314","雲嶺","五元","七星潭","三仙台","伯朗大道","西湖","景區","海豚灣","涼山","口湖","大安休息站","休息區"];
+function effRest(i){const v=S.rest[i];if(v!=null)return v;const kw=LONGKW.some(k=>(S.disp[i]||"").includes(k)),lg=S.legs&&S.legs[i-1];return(kw||(lg&&lg.duration.value/60>90))?2:1}
+const restMin=v=>v>=100?v-100:(v===0?0:v===2?20:10);
 function ed(i){const n=prompt("修改顯示名稱",S.disp[i]);if(n){S.disp[i]=n.trim();draw()}}
 function tgDN(){const e=$("ex"),on=e.style.display==="none";e.style.display=on?"flex":"none";$("dnb").textContent=(on?"▼":"▶")+" D+N設定"}
 function reGen(){if(S.legs&&S.legs.length===S.loc.length-1)render()}
 function drawEx(){while(S.extra.length<4)S.extra.push({h:"06",m:"00"});$("ex").innerHTML=[0,1,2,3].map(i=>`D+${i+1} <input value="${S.extra[i].h}" oninput="S.extra[${i}].h=this.value;reGen()" style="width:48px">:<input value="${S.extra[i].m}" oninput="S.extra[${i}].m=this.value;reGen()" style="width:48px">`).join(" ")}
 function exVals(){return S.extra.map(e=>({hour:e.h,minute:e.m}))}
 const COORD=/^-?\d+(\.\d+)?\s*,\s*-?\d+(\.\d+)?$/;
-function placeAdd(name,lat,lng){const v=(lat!=null&&lng!=null)?`${lat},${lng}`:name,at=S.sel>=0?S.sel+1:S.loc.length;S.loc.splice(at,0,v);S.disp.splice(at,0,name);S.rest.splice(at,0,1);S.sel=at;$("add").value="";$("cand").innerHTML="";S.legs=null;
+function placeAdd(name,lat,lng){const v=(lat!=null&&lng!=null)?`${lat},${lng}`:name,at=S.sel>=0?S.sel+1:S.loc.length;S.loc.splice(at,0,v);S.disp.splice(at,0,name);S.rest.splice(at,0,null);S.sel=at;$("add").value="";$("cand").innerHTML="";S.legs=null;
 if(lat!=null){try{const pc=JSON.parse(L("pc")||"{}");pc[name]={lat:lat,lng:lng};localStorage.pc=JSON.stringify(pc)}catch(e){}}draw();if(!S.offline)cloud("saveHistory",{items:[name]})}
 async function addL(){const v=$("add").value.trim();if(!v)return;$("cand").innerHTML="";let pc={};try{pc=JSON.parse(L("pc")||"{}")}catch(e){}
 if(pc[v])return placeAdd(v,pc[v].lat,pc[v].lng);if(COORD.test(v)||!OKU(L("calc")))return placeAdd(v);
@@ -129,7 +154,7 @@ n=n.replace(/(?<![A-Za-z0-9])\+(?![0-9])/g," ").trim();n=n.replace(/(?<![A-Za-z0
 n=n.replace(/[（(][^）)]{1,10}[）)]/g,"").trim();n=n.replace(/\s*\d+號\s*$/,"").trim();return n||f}
 function parseU(){const u=$("url").value.trim();if(!u.includes("/dir/"))return toast("無法從網址拆解地點");
 const raw=u.split("/dir/")[1].split("/@")[0].split("/").filter(p=>p&&!p.startsWith("!")&&!p.startsWith("@")&&!p.includes("data=")).map(dec);
-if(!raw.length)return toast("無法從網址拆解地點");S.loc=raw;S.disp=raw.map(shorten);S.rest=raw.map(()=>1);S.sel=-1;S.legs=null;draw();toast("已拆解 "+raw.length+" 個地點");cloud("saveHistory",{items:S.disp})}
+if(!raw.length)return toast("無法從網址拆解地點");S.loc=raw;S.disp=raw.map(shorten);S.rest=raw.map(()=>null);S.sel=-1;S.legs=null;draw();toast("已拆解 "+raw.length+" 個地點");cloud("saveHistory",{items:S.disp})}
 const fT=m=>{m=Math.floor(m);const d=Math.floor(m/1440),x=m%1440;return String(Math.floor(x/60)).padStart(2,"0")+":"+String(x%60).padStart(2,"0")+(d?` (+${d}日)`:"")};
 const fD=m=>{const h=Math.floor(m/60),x=Math.floor(m%60);return h>0?`${h} 小時 ${x} 分`:`${x} 分`};
 function mapUrl(){const p=S.disp.map(l=>l.replace(/\//g,"／").replace(/#/g,"%23").replace(/\?/g,"%3F")).join("/");const f=($("toll").checked?"t":"")+($("hwy").checked?"h":"");return`https://www.google.com.tw/maps/dir/${p}/data=!4m2!4m1!3e0`+(f?`&dirflg=${f}`:"")}
@@ -181,16 +206,16 @@ function render(){const loc=S.disp,legs=S.legs,name=$("nm").value,adj=(+$("adj")
 const dayStart=n=>{if(!n)return st;const e=ex[Math.min(n-1,ex.length-1)]||{};return(+e.hour||6)*60+(+e.minute||0)};
 let cd=0,ct=0,cur=st,tr=0,day=0;const sg=[];
 legs.forEach((lg,i)=>{const km=Math.floor(lg.distance.value/1000),du=lg.duration.value*adj/60;cd+=km;ct+=du;const ar=cur+du;let rt=0,ov=false;
-if(i<legs.length-1){const rv=S.rest[i+1]!=null?S.rest[i+1]:1;if(rv===3){ov=true;day++;const nx=dayStart(day),am=Math.floor(ar)%1440;rt=nx>am?nx-am:1440-am+nx}else rt=[0,10,20][rv]!=null?[0,10,20][rv]:10;tr+=rt}
+if(i<legs.length-1){const rv=effRest(i+1);if(rv===3){ov=true;day++;const nx=dayStart(day),am=Math.floor(ar)%1440;rt=nx>am?nx-am:1440-am+nx}else rt=restMin(rv);tr+=rt}
 sg.push({f:loc[i],t:loc[i+1],km,du,cd,ct,rt,ar,dep:ar+rt,ov,day});cur=ar+rt});
-const td=ct,tt=td+tr,en=st+tt,rd=x=>x,lines=[];
+S.sg=sg;const td=ct,tt=td+tr,en=st+tt,rd=x=>x,lines=[];
 lines.push("#"+name,"","🏍️ 路線規劃結果 🏍️",`✅ 總覽：${loc[0]} → ${loc[loc.length-1]}`,`預計出發：${fT(st)}`,`預計抵達：${fT(en)}`,`總里程：${sg[sg.length-1].cd} 公里`,`總行駛時間：${fD(td)}`,`總休息時間：${fD(tr)} (預估)`,`總耗時：${fD(tt)}`,"§");
 sg.forEach((s,i)=>{let rtp="省道/縣道";for(const k in ROAD){if(ROAD[k].some(w=>s.t.includes(w))){rtp=k;break}}
 lines.push(`--- 第${i+1}段：${s.f} → #${s.t} (${rtp}) ---`,`🛣️ 距離：${s.km} 公里`,`🏍️ 行駛：${fD(s.du)}`,`🛣️ 累計距離：${s.cd} 公里`,`🏍️ 累計行駛：${fD(s.ct)}`,`📍 抵達：${fT(s.ar)}`);
 for(const k in ATTR){if(s.t.includes(k)){lines.push("✨ 推薦："+ATTR[k]);break}}
 if(s.rt>0){if(s.ov)lines.push(`🌙 過夜（${s.day>0?"D+"+s.day:"D Day"} ${fT(s.dep%1440)} 出發）`);else lines.push(`☕ 休息：${Math.floor(s.rt)} 分`,`➡️ 出發：${fT(s.dep)}`)}else lines.push("§");lines.push("§")});
 lines.push("","⚠️ 注意：請根據實際路況調整騎乘速度，山區路段請小心駕駛。","","🔗 完整 Google Maps 導航連結：",mapUrl());
-$("o1").value=lines.join("\n");
+$("o1").value=lines.join("\n");fillD();
 const col=((st-30)%1440+1440)%1440,lg=sg.filter(s=>s.rt>=20).map(s=>s.t);
 $("o2").value=[`【${name}】｜機車巡航之旅`,"","📅 日期： [請發起人填寫]",`⏰ 集合時間：${fT(col)} (準時)`,`🏍️ 出發時間：${fT(st)} (準時出發，不等人)`,`📍 集合地點：${loc[0]}`,`🛣️ 目的地/路線：${loc[0]} → ${loc.slice(1,-1).join(" → ")} → ${loc[loc.length-1]}`,`📌 總里程：${sg[sg.length-1].cd} 公里`,`⏱️ 總耗時：約 ${Math.floor(tt/60)} 小時 ${Math.floor(tt%60)} 分 (預估，含休息)`,"",
 "🏁 騎乘風格與分組建議：","· 本次騎乘風格： 山道觀光巡航組，以探訪高山秘境為主。","· 建議速度： 山區道路多狹窄彎道，請務必減速慢行，嚴禁越線。","· 重要提醒： 路線包含大量高山縣道，需具備一定的山道騎乘經驗。","","🗺️ 行程概覽與重點休息點：",lg.length?`· 重點休息點（長休20分）：${lg.join(", ")}`:"· 重點休息點：無長休站點","",
