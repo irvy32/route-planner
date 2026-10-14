@@ -118,7 +118,7 @@ function fillD(){const ok=S.legs&&S.sg&&S.sg.length===S.loc.length-1&&S.legs.len
 S.loc.forEach((_,i)=>{const e=$("d"+i);if(!e)return;if(i===0){e.textContent="出發點";e.className="d";return}
 if(!ok){e.textContent="";e.className="d";return}const g=S.sg[i-1],m=Math.round(g.du);e.textContent=`${String(g.km).padStart(3," ")} km / ${m} 分`;e.className="d"+(m>120?" long":"")});
 const n=S.loc.length;if(!n){$("sum").textContent="";return}let t="共 "+n+" 個地點";
-if(ok){const km=S.sg.reduce((a,g)=>a+g.km,0),mm=S.sg.reduce((a,g)=>a+g.du,0),ov=S.sg.filter(g=>g.ov).length;t+=`　🛣️ ${km} km　⏱️ ${Math.floor(mm/60)}h${Math.floor(mm%60)}m`+(ov?`　📅 過夜${ov}次`:"")}$("sum").textContent=t}
+if(ok){const km=S.sg.reduce((a,g)=>a+g.km,0),mm=S.sg.reduce((a,g)=>a+g.du,0),ov=S.sg.filter(g=>g.ov).length,rs=S.sg.reduce((x,g)=>x+(g.ov?0:(g.rt||0)),0);t+=`　🛣️ ${km} km　⏱️ ${Math.floor(mm/60)}h${Math.floor(mm%60)}m`+(rs>0?`　☕ ${Math.floor(rs/60)}h${Math.floor(rs%60)}m`:"")+(ov?`　📅 過夜${ov}次`:"")}$("sum").textContent=t}
 function applyQ(){const q=($("sq").value||"").trim().toLowerCase();[...$("ll").children].forEach(r=>{const i=+r.dataset.i;r.style.display=(!q||(S.disp[i]||"").toLowerCase().includes(q))?"":"none"})}
 function restHtml(i){const rv=effRest(i),cu=rv>=100;
 return '<span class="rg">'+[["不休",0],["短休10",1],["長休20",2],["過夜",3]].map(([t,v])=>`<label onclick="event.stopPropagation()"><input type="radio" name="r${i}" ${rv===v?"checked":""} onclick="event.stopPropagation();setRest(${i},${v})">${t}</label>`).join("")+
