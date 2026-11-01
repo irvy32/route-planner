@@ -34,7 +34,7 @@ textarea{width:100%;font-size:13px}.g{background:#2e7d32}.b{background:var(--p)}
 <button class="b" onclick="loadR()">載入</button><button class="g" onclick="newR()">＋新增路線</button><button class="g" onclick="saveR()">儲存</button><button class="t" onclick="dupR()">複製</button><button class="v" onclick="revR()">反向</button><button class="o" onclick="renR()">改名</button><button class="r" onclick="delR()">刪除</button><button class="k" onclick="openTrash()">🗑 復原已刪除</button><button class="k" onclick="init()">↻ 重新整理</button><button class="o" id="bf" onclick="batchFill()">⚡ 補齊所有路線快取</button></div>
 <div class="row">名稱：<input id="nm" style="flex:1;min-width:160px"></div></div>
 <div class="card"><h3>行程設定</h3><div class="row">D Day 出發 <input id="h" size="2" maxlength="2" style="width:48px" oninput="reGen()">:<input id="m" size="2" maxlength="2" style="width:48px" oninput="reGen()"> 時間調整 <input id="adj" type="number" style="width:70px" value="100" oninput="reGen()">%</div>
-<div class="row"><label><input type="checkbox" id="toll" onchange="S.legs=null;caInfo();syncLink()"> 避開收費</label><label><input type="checkbox" id="hwy" onchange="S.legs=null;caInfo();syncLink()"> 避開高速</label></div><div class="row"><button class="k" id="dnb" onclick="tgDN()">▶ D+N設定</button></div><div id="ex" class="row" style="display:none"></div>
+<div class="row"><label><input type="checkbox" id="toll" onchange="S.legs=null;draw()"> 避開收費</label><label><input type="checkbox" id="hwy" onchange="S.legs=null;draw()"> 避開高速</label></div><div class="row"><button class="k" id="dnb" onclick="tgDN()">▶ D+N設定</button></div><div id="ex" class="row" style="display:none"></div>
 <textarea id="url" rows="2" placeholder="貼上 Google Maps 路線網址"></textarea><div class="row"><button class="b" onclick="parseU()">拆解網址</button></div></div>
 <div class="card"><h3>地點（<span id="cnt">0</span>）</h3><div id="sum"></div><div class="row"><input id="sq" placeholder="🔍 搜尋清單中的地點" style="flex:1;min-width:160px" oninput="applyQ()"><button class="k" onclick="$('sq').value='';applyQ()">清除</button></div><div class="row"><input id="add" list="hl" style="flex:1;min-width:160px" placeholder="輸入地點名稱"><datalist id="hl"></datalist><button class="g" onclick="addL()">＋</button></div><div id="cand"></div>
 <div id="ll"></div><div class="row"><button class="k" onclick="mv(-1)">↑上移</button><button class="k" onclick="mv(1)">↓下移</button><button class="r" onclick="rmL()">刪除</button><button class="o" onclick="clr()">清空</button></div></div>
@@ -113,7 +113,7 @@ async function openTrash(){const r=await cloud("getTrash");if(r.status!=="succes
 window._tr=r.items;$("tl").innerHTML=r.items.length?r.items.map((x,i)=>`<div class="ti" onclick="restoreT(${i})"><b>${esc(x.name)}</b><small>${x.count} 個地點　刪除於 ${new Date(x.deletedAt).toLocaleString("zh-TW",{hour12:false})}</small></div>`).join(""):'<div class="ti">垃圾桶是空的</div>';$("tm").style.display="block"}
 async function restoreT(i){const x=window._tr[i];if(!x||!confirm("復原路線「"+x.name+"」？"))return;const r=await cloud("restoreRoute",{name:x.name,deletedAt:x.deletedAt});if(r.status!=="success")return toast(r.message||"復原失敗",5000);closeTrash();await refresh();toast("已復原："+r.name,5000)}
 function draw(){if(S.badSig!==S.loc.join("|"))S.bad=new Set();$("cnt").textContent=S.loc.length;$("ll").innerHTML=S.loc.map((_,i)=>`<div class="loc ${i===S.sel?"sel":""} ${S.bad.has(i)?"bad":""}" data-i="${i}" onclick="S.sel=${i};draw()"><span class="h" data-i="${i}" title="拖曳排序">⠿</span><span class="n" ondblclick="ed(${i})">${String(i+1).padStart(2,"0")}. ${S.disp[i]}${i===0?" 〔出發〕":""}</span><button class="k" style="padding:0 6px" onclick="event.stopPropagation();ed(${i})">✎</button><span class="d" id="d${i}"></span>`+
-((i===0||i===S.loc.length-1)?"":restHtml(i))+"</div>").join("");drawEx();caInfo();fillD();applyQ();syncLink()}
+((i===0||i===S.loc.length-1)?"":restHtml(i))+"</div>").join("");drawEx();caInfo();autoOut();fillD();applyQ();syncLink()}
 function fillD(){const ok=S.legs&&S.sg&&S.sg.length===S.loc.length-1&&S.legs.length===S.sg.length;
 S.loc.forEach((_,i)=>{const e=$("d"+i);if(!e)return;if(i===0){e.textContent="出發點";e.className="d";return}
 if(!ok){e.textContent="";e.className="d";return}const g=S.sg[i-1],m=Math.round(g.du);e.textContent=`${String(g.km).padStart(3," ")} km / ${m} 分`;e.className="d"+(m>120?" long":"")});
@@ -137,6 +137,8 @@ async function replL(i,v){window._rep=i;$("cand").innerHTML="";let pc={};try{pc=
 if(pc[v])return placeAdd(v,pc[v].lat,pc[v].lng);if(COORD.test(v)||!OKU(L("calc")))return placeAdd(v);
 toast("查詢地點中…",20000);try{const r=await api(L("calc"),{action:"search_place",query:v});hideToast();if(r.status==="success"&&r.data&&r.data.length){showCand(v,r.data);$("cand").scrollIntoView({block:"center"})}else rawAsk(v,"Google 查無此地點")}catch(e){hideToast();rawAsk(v,"查詢失敗："+e.message)}}
 function tgDN(){const e=$("ex"),on=e.style.display==="none";e.style.display=on?"flex":"none";$("dnb").textContent=(on?"▼":"▶")+" D+N設定"}
+function autoOut(){if(S.loc.length<2)return;if(fromCache()){render();return}S.legs=null;let m=0;for(let i=0;i<S.loc.length-1;i++)if(!cget(lk(i)))m++;
+const t="（路線有變動，尚缺 "+m+" 段距離資料）\n請按「生成連結 + 輸出」更新，只會查詢缺的這 "+m+" 段。";$("o1").value=t;$("o2").value=t}
 function reGen(){if(S.legs&&S.legs.length===S.loc.length-1)render()}
 function drawEx(){while(S.extra.length<4)S.extra.push({h:"06",m:"00"});$("ex").innerHTML=[0,1,2,3].map(i=>`D+${i+1} <input value="${S.extra[i].h}" oninput="S.extra[${i}].h=this.value;reGen()" style="width:48px">:<input value="${S.extra[i].m}" oninput="S.extra[${i}].m=this.value;reGen()" style="width:48px">`).join(" ")}
 function exVals(){return S.extra.map(e=>({hour:e.h,minute:e.m}))}
@@ -162,8 +164,10 @@ const raw=u.split("/dir/")[1].split("/@")[0].split("/").filter(p=>p&&!p.startsWi
 if(!raw.length)return toast("無法從網址拆解地點");S.loc=raw;S.disp=raw.map(shorten);S.rest=raw.map(()=>null);S.sel=-1;S.legs=null;draw();toast("已拆解 "+raw.length+" 個地點");cloud("saveHistory",{items:S.disp})}
 const fT=m=>{m=Math.floor(m);const d=Math.floor(m/1440),x=m%1440;return String(Math.floor(x/60)).padStart(2,"0")+":"+String(x%60).padStart(2,"0")+(d?` (+${d}日)`:"")};
 const fD=m=>{const h=Math.floor(m/60),x=Math.floor(m%60);return h>0?`${h} 小時 ${x} 分`:`${x} 分`};
-function mapUrl(){const p=S.disp.map(l=>l.replace(/\//g,"／").replace(/#/g,"%23").replace(/\?/g,"%3F")).join("/");const f=($("toll").checked?"t":"")+($("hwy").checked?"h":"");return`https://www.google.com.tw/maps/dir/${p}/data=!4m2!4m1!3e0`+(f?`&dirflg=${f}`:"")}
-function realUrl(){const p=S.loc.map(l=>encodeURIComponent(l)).join("/");const f=($("toll").checked?"t":"")+($("hwy").checked?"h":"");return`https://www.google.com.tw/maps/dir/${p}/data=!4m2!4m1!3e0`+(f?`&dirflg=${f}`:"")}
+function mapTail(){const t=$("toll").checked,h=$("hwy").checked,f=[];if(h)f.push("!1b1");if(t)f.push("!2b1");const k=f.length;
+const d=k?`/data=!4m${k+3}!4m${k+2}!2m${k}${f.join("")}!3e0`:"/data=!4m2!4m1!3e0";return d+(k?"?dirflg="+(t?"t":"")+(h?"h":""):"")}
+function mapUrl(){const p=S.disp.map(l=>l.replace(/\//g,"／").replace(/#/g,"%23").replace(/\?/g,"%3F")).join("/");return`https://www.google.com.tw/maps/dir/${p}${mapTail()}`}
+function realUrl(){const p=S.loc.map(l=>encodeURIComponent(l)).join("/");return`https://www.google.com.tw/maps/dir/${p}${mapTail()}`}
 const cget=k=>S.cache[k]||S.shared[k];
 const lk=i=>S.loc[i]+"→"+S.loc[i+1]+"|"+($("toll").checked?1:0)+($("hwy").checked?1:0);
 function packCache(){const p={};for(let i=0;i<S.loc.length-1;i++){const c=cget(lk(i));if(c)p[lk(i)]=c}return{at:S.cacheAt||0,pairs:p}}
