@@ -1,7 +1,7 @@
 <!DOCTYPE html><html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>路線規劃 雲端版</title><link rel="manifest" href="manifest.json"><meta name="theme-color" content="#1976d2"><link rel="icon" href="icon.png"><link rel="apple-touch-icon" href="icon.png"><style>
-:root{--bg:#f4f6f8;--c:#fff;--t:#222;--b:#cfd8dc;--p:#1976d2;--alt:#dde7f2;--inp:#fff8dc;--inpb:#e0a800}
-@media(prefers-color-scheme:dark){:root{--bg:#15191c;--c:#222a2f;--t:#e8eaed;--b:#46525a;--alt:#38464f;--inp:#3a3520;--inpb:#c9a227}}
+:root{--bg:#f4f6f8;--c:#fff;--t:#222;--b:#cfd8dc;--p:#1976d2;--alt:#dde7f2;--sel:#ffe08a;--inp:#fff8dc;--inpb:#e0a800}
+@media(prefers-color-scheme:dark){:root{--bg:#15191c;--c:#222a2f;--t:#e8eaed;--b:#46525a;--alt:#38464f;--sel:#7a6212;--inp:#3a3520;--inpb:#c9a227}}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--t);font:15px/1.5 "Microsoft JhengHei",sans-serif;padding:8px;max-width:1200px;margin:auto}
 .card{background:var(--c);border:1px solid var(--b);border-radius:8px;padding:10px;margin-bottom:10px}
 h3{margin:0 0 6px;font-size:15px}input,select,textarea,button{font:inherit;color:var(--t);background:var(--c);border:1px solid var(--b);border-radius:5px;padding:5px 8px}
@@ -10,7 +10,7 @@ textarea{width:100%;font-size:13px}.g{background:#2e7d32}.b{background:var(--p)}
 .loc{display:flex;flex-wrap:wrap;align-items:center;gap:6px;padding:6px 4px;border-bottom:1px solid var(--b)}.loc.sel{background:rgba(25,118,210,.15)}
 .loc .n{flex:1 1 180px;cursor:pointer}.loc label{white-space:nowrap;font-size:13px}#msg{position:fixed;bottom:10px;left:10px;right:10px;background:#333;color:#fff;padding:8px;border-radius:6px;display:none;text-align:center}
 @media(min-width:900px){#out{display:grid;grid-template-columns:1fr 1fr;gap:10px}}
-.loc.bad{background:rgba(198,40,40,.28)}.h{cursor:grab;touch-action:none;user-select:none;padding:0 8px;font-size:20px;color:#888}.loc.dov{outline:2px dashed var(--p)}.loc.dragging{opacity:.5}#cand button{margin:2px 0}.loc:nth-child(even){background:var(--alt)}.loc.sel{background:rgba(25,118,210,.22)!important}.loc.bad{background:rgba(198,40,40,.28)!important}
+.loc.bad{background:rgba(198,40,40,.28)}.h{cursor:grab;touch-action:none;user-select:none;padding:0 8px;font-size:20px;color:#888}.loc.dov{outline:2px dashed var(--p)}.loc.dragging{opacity:.5}#cand button{margin:2px 0}.loc:nth-child(even){background:var(--alt)}.loc.sel{background:var(--sel)!important;box-shadow:inset 5px 0 0 #e65100;font-weight:600}.loc.bad{background:rgba(198,40,40,.28)!important}
 #add,#url,#nm{background:var(--inp);border:2px solid var(--inpb)}#add:focus,#url:focus,#nm:focus{outline:2px solid var(--p);border-color:var(--p)}
 .rg{display:flex;gap:10px;flex-wrap:wrap;align-items:center}.cu{display:none;align-items:center;gap:4px;font-size:14px}.cu.on{display:inline-flex}.cu input{width:66px;padding:3px 6px;background:var(--inp);border:2px solid var(--inpb)}
 @media(min-width:701px){.loc{display:grid;grid-template-columns:30px minmax(0,400px) 40px auto;justify-content:start;column-gap:12px;align-items:center}.loc .n{flex:none}}
@@ -130,19 +130,24 @@ function setRest(i,v){const cu=$("cu"+i);if(v==="c"){const el=$("cm"+i),m=clampM
 const LONGKW=["早餐","午餐","晚餐","包子","冰店","麻糬","蚵嗲","觀景台","雲梯","公園","古道","遺址","部落","遊客中心","風景區","海濱","火車站","朝天宮","1314","雲嶺","五元","七星潭","三仙台","伯朗大道","西湖","景區","海豚灣","涼山","口湖","大安休息站","休息區"];
 function effRest(i){const v=S.rest[i];if(v!=null)return v;const kw=LONGKW.some(k=>(S.disp[i]||"").includes(k)),lg=S.legs&&S.legs[i-1];return(kw||(lg&&lg.duration.value/60>90))?2:1}
 const restMin=v=>v>=100?v-100:(v===0?0:v===2?20:10);
-function ed(i){const n=prompt("修改顯示名稱",S.disp[i]);if(n){S.disp[i]=n.trim();draw()}}
+function ed(i){const o=S.disp[i],n0=prompt("修改地點名稱\n（接著會問你是只改顯示名稱，還是要換成另一個地點）",o);if(!n0)return;const n=n0.trim();if(!n)return;
+if(n===o){if(confirm("要重新向 Google 查詢「"+n+"」，並把這一列換成查到的地點嗎？\n（名字沒變，但背後實際導航的地點會更新）")){S.sel=i;draw();replL(i,n)}return}
+if(confirm("「"+n+"」是要換成另一個地點嗎？\n\n按「確定」：向 Google 查詢並換成這個新地點（Google Maps 連結與距離會一起更新）\n按「取消」：只改顯示的名字，實際導航的地點不變")){S.sel=i;draw();replL(i,n)}else{S.disp[i]=n;draw()}}
+async function replL(i,v){window._rep=i;$("cand").innerHTML="";let pc={};try{pc=JSON.parse(L("pc")||"{}")}catch(e){}
+if(pc[v])return placeAdd(v,pc[v].lat,pc[v].lng);if(COORD.test(v)||!OKU(L("calc")))return placeAdd(v);
+toast("查詢地點中…",20000);try{const r=await api(L("calc"),{action:"search_place",query:v});hideToast();if(r.status==="success"&&r.data&&r.data.length){showCand(v,r.data);$("cand").scrollIntoView({block:"center"})}else rawAsk(v,"Google 查無此地點")}catch(e){hideToast();rawAsk(v,"查詢失敗："+e.message)}}
 function tgDN(){const e=$("ex"),on=e.style.display==="none";e.style.display=on?"flex":"none";$("dnb").textContent=(on?"▼":"▶")+" D+N設定"}
 function reGen(){if(S.legs&&S.legs.length===S.loc.length-1)render()}
 function drawEx(){while(S.extra.length<4)S.extra.push({h:"06",m:"00"});$("ex").innerHTML=[0,1,2,3].map(i=>`D+${i+1} <input value="${S.extra[i].h}" oninput="S.extra[${i}].h=this.value;reGen()" style="width:48px">:<input value="${S.extra[i].m}" oninput="S.extra[${i}].m=this.value;reGen()" style="width:48px">`).join(" ")}
 function exVals(){return S.extra.map(e=>({hour:e.h,minute:e.m}))}
 const COORD=/^-?\d+(\.\d+)?\s*,\s*-?\d+(\.\d+)?$/;
-function placeAdd(name,lat,lng){const v=(lat!=null&&lng!=null)?`${lat},${lng}`:name,at=S.sel>=0?S.sel+1:S.loc.length;S.loc.splice(at,0,v);S.disp.splice(at,0,name);S.rest.splice(at,0,null);S.sel=at;$("add").value="";$("cand").innerHTML="";S.legs=null;
+function placeAdd(name,lat,lng){const v=(lat!=null&&lng!=null)?`${lat},${lng}`:name,rp=window._rep;window._rep=null;let at;if(rp!=null&&rp>=0&&rp<S.loc.length){at=rp;S.loc[at]=v;S.disp[at]=name;toast("已換成新地點："+name,3500)}else{at=S.sel>=0?S.sel+1:S.loc.length;S.loc.splice(at,0,v);S.disp.splice(at,0,name);S.rest.splice(at,0,null)}S.sel=at;$("add").value="";$("cand").innerHTML="";S.legs=null;
 if(lat!=null){try{const pc=JSON.parse(L("pc")||"{}");pc[name]={lat:lat,lng:lng};localStorage.pc=JSON.stringify(pc)}catch(e){}}draw();if(!S.offline)cloud("saveHistory",{items:[name]})}
-async function addL(){const v=$("add").value.trim();if(!v)return;$("cand").innerHTML="";let pc={};try{pc=JSON.parse(L("pc")||"{}")}catch(e){}
+async function addL(){const v=$("add").value.trim();if(!v)return;window._rep=null;$("cand").innerHTML="";let pc={};try{pc=JSON.parse(L("pc")||"{}")}catch(e){}
 if(pc[v])return placeAdd(v,pc[v].lat,pc[v].lng);if(COORD.test(v)||!OKU(L("calc")))return placeAdd(v);
 toast("查詢地點中…",20000);try{const r=await api(L("calc"),{action:"search_place",query:v});hideToast();if(r.status==="success"&&r.data&&r.data.length)showCand(v,r.data);else rawAsk(v,"Google 查無此地點")}catch(e){hideToast();rawAsk(v,"查詢失敗："+e.message)}}
-function rawAsk(v,why){if(confirm(why+"\n\n是否仍要用「"+v+"」這個原始文字加入清單？\n（未經驗證的地點，之後規劃路線時可能仍會查詢失敗）"))placeAdd(v)}
-function showCand(q,list){window._cand=list;window._q=q;$("cand").innerHTML="<div style='margin:4px 0'>請選擇正確的地點：</div>"+list.map((c,i)=>`<div><button class="b" style="text-align:left;width:100%" onclick="pickCand(${i})">${esc(c.name)}<br><small>${esc(c.address||"")}</small></button></div>`).join("")+`<div><button class="k" onclick="placeAdd(window._q)">仍用原文字「${esc(q)}」加入</button><button class="r" onclick="$('cand').innerHTML=''">取消</button></div>`}
+function rawAsk(v,why){if(confirm(why+"\n\n是否仍要用「"+v+"」這個原始文字"+(window._rep!=null?"取代原本的地點":"加入清單")+"？\n（未經驗證的地點，之後規劃路線時可能仍會查詢失敗）"))placeAdd(v);else window._rep=null}
+function showCand(q,list){window._cand=list;window._q=q;$("cand").innerHTML="<div style='margin:4px 0'>請選擇正確的地點：</div>"+list.map((c,i)=>`<div><button class="b" style="text-align:left;width:100%" onclick="pickCand(${i})">${esc(c.name)}<br><small>${esc(c.address||"")}</small></button></div>`).join("")+`<div><button class="k" onclick="placeAdd(window._q)">仍用原文字「${esc(q)}」${window._rep!=null?"取代":"加入"}</button><button class="r" onclick="window._rep=null;$('cand').innerHTML=''">取消</button></div>`}
 function pickCand(i){const c=window._cand[i];placeAdd(c.name,c.lat,c.lng)}
 function mv(d){const i=S.sel,j=i+d;if(i<0||j<0||j>=S.loc.length)return;for(const a of [S.loc,S.disp,S.rest])[a[i],a[j]]=[a[j],a[i]];S.sel=j;S.legs=null;draw()}
 function rmL(){if(S.sel<0)return;for(const a of [S.loc,S.disp,S.rest])a.splice(S.sel,1);S.sel=-1;S.legs=null;draw()}
